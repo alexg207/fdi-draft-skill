@@ -1314,7 +1314,7 @@ cp template/data.js data.js
 
 10. **Populate `JOB_LISTINGS`** from `sumble-jobs.json` (Phase 6j). Each company's `jobs[]` array maps to JOB_LISTINGS entries with title, team, location, URL. If a company has empty jobs in Sumble data, leave its JOB_LISTINGS entry empty rather than backfilling with weaker data.
 
-11. **Populate `COMPANY_SOURCES`** from `webset-response.json` PLUS targeted web fetches. Source list quality is what readers use to judge the rest of the dashboard. Counts and rules:
+11. **Populate `COMPANY_SOURCES`** from `webset-response.json`, `founder-pick-research.json` (Phase 6m results for founder-named picks), AND targeted web fetches. Source list quality is what readers use to judge the rest of the dashboard. Counts and rules:
     - **Target: 6 sources per company** (V1 averages 6; the May 5 V2 Celonis shipped 3 — don't repeat that).
     - **Hard floor: 4 sources.** Below 4 is unacceptable. Either fetch the missing tier(s) yourself (SEC filing for public companies, engineering blog posts for tech-forward companies), drop the company's tier from `high` to `med`, or replace the company in the curated 10.
     - **4-5 sources is acceptable but try once more to reach 6** before moving on, especially if Tier 1 or Tier 2 sources are missing.
