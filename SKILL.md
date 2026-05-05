@@ -1,6 +1,6 @@
 ---
 name: Generate FDI Draft
-description: Runs the entire Founder-Driven Intelligence motion end to end in Claude Code. Reads founder docs (memo, deck, transcripts) from a working directory, captures ICP and founder voice, runs an Exa Webset to discover and enrich ~30 matching companies, customizes the HTML dashboard template, and produces a complete per-founder Git repo ready to push or deploy. One activation, one finished build.
+description: Runs the entire Founder-Driven Intelligence motion end to end in Claude Code. Reads founder docs (memo, deck, transcripts) from a working directory, captures ICP and founder voice, runs an Exa Webset to discover and enrich ~10 high-confidence target companies, customizes the HTML dashboard template, and produces a complete per-founder Git repo ready to push or deploy. One activation, one finished build.
 ---
 
 # Generate FDI Draft Skill
@@ -87,7 +87,7 @@ Why this structure:
 You are running the FDI skill in Claude Code for a market development associate at Primary Venture Partners. You're operating inside a per-founder Git repo at `~/fdi/<founder-slug>/` (or wherever the user's working directory is). Your goal is to produce a complete, customized intelligence dashboard for a founder, end to end:
 
 1. Capture the founder's vertical, ICP, and voice from raw docs in `inputs/` (intake)
-2. Run an Exa Webset to discover and enrich ~30 ICP-matching companies (enrichment)
+2. Run an Exa Webset to discover and enrich ~10 high-confidence ICP-matching companies (enrichment)
 3. Customize the HTML template into a polished dashboard (build)
 
 Output: 4 files at the repo root, plus 3 saved JSON intermediates:
@@ -116,6 +116,37 @@ These rules apply to every piece of text you write into CONTEXT.md, data.js fiel
 4. **Numeric ranges, not point estimates**, when uncertainty is real. "$2M–$5M annual inference spend" beats "$3.5M" if the underlying data is an estimate. Do not pretend to precision the data does not support.
 
 5. **Cite or omit.** Every numeric or specific claim either has a source in `ROW_SOURCES` or is dropped. Wrong citation is worse than no citation.
+
+6. **Final dashboard target: exactly 10 companies.** Founders walk through 3 companies max in any demo. Wide coverage hurts more than it helps; depth-per-company beats breadth. Don't ship 30 mixed-quality entries when 10 high-confidence entries do the job better. If a slot has no candidate worth deep research, leave it empty (9 strong > 10 with one weak).
+
+7. **No placeholder text in shipped output.** "needs verification", "TBD", "unknown", "to be confirmed", "?", "[insert ...]", "lorem ipsum" — none of these ship. If a Webset enrichment returns a placeholder string, either fill the field with a defensible value (compute the estimate yourself, find the source, name the actual product) or omit the field entirely. The May 5 V2 build shipped `Estimated Spend: "$3-8M annual inference (needs verification)"` as a row value — that's the failure mode this rule prevents.
+
+8. **Subtitle ≤ 18 words, no parenthetical financial metadata.** The subtitle under the company name should land one signal. Don't stuff revenue, employee count, or founding year into parentheticals — that data goes in the Profile section. If the subtitle ends with "..." it's too long; rewrite shorter. See TEMPLATE_GUIDE Section 9.1.
+
+9. **Pain Points framing: financial consequence first.** When writing the Pain Points row in the Inference Footprint section, the first sentence is CFO language (margin compression, COGS impact, gross-margin drag, opex pressure). Constraint enumeration is the second sentence onward. A field that reads "X; Y; Z" with semicolons is enumeration, not framing — rewrite. See TEMPLATE_GUIDE Section 9.8.
+
+10. **Locked field sets per section** (do NOT add fields beyond these):
+    - Profile (5 rows): Industry, Revenue, Employees, Cloud Provider, AI Maturity
+    - Inference Footprint (4 rows): Use Cases, Current Stack, Pain Points, Estimated Spend
+    - GTM Strategy (5 rows): Approach, Key Evidence, Urgency Level, Target Buyer, Messaging Angle
+    Do not add Founded, Headquarters, "[Founder] Status", Stage, ICP Tier, or Business Type to Profile. Relationship status lives in `tags` as a brand-color chip, not as a profile row.
+
+11. **Banned tag values.** Do not use `Stage-1 ICP`, `Stage-2 ICP`, `Stage 1`, `Stage 2`, `Pipeline`, `Mid-Market`, `Enterprise`, `Target`, `ICP`, or `In ICP` as tag values. The segment is already shown by the tab. Tags must reference product names (e.g., "Bits AI"), technical stack ("vLLM", "Multi-cloud + Bare Metal"), constraints ("PCI DSS Level 1"), relationship status ("Signed Design Partner"), or hiring signals (prefixed "Hiring:"). See TEMPLATE_GUIDE Section 9.4.
+
+12. **Source quality hierarchy: 6-source target, 4-source hard floor, primary records first.** The COMPANY_SOURCES list at the bottom of each card is what readers use to judge the rest of the dashboard. Counts:
+    - **Target: 6 sources** (V1 averages 6). Aim here on every company.
+    - **Hard floor: 4 sources.** Below 4, the card looks thin — escalate (run extra Exa fetches for missing tiers, drop the company's tier from `high` to `med`, or replace the company in the curated 10).
+    - **Between 4 and 5 is acceptable** if the sources are quality (Tier 1 SEC filing or Tier 2 engineering blog present) — try once more to reach 6 before shipping.
+    Other requirements:
+    - For public companies: at least one SEC filing (10-K, 10-Q, S-1, DEF 14A, or 8-K from sec.gov).
+    - For tech-forward companies: at least two named engineering blog posts with specific technical titles ("LLMs for Postmortems", "State of AI Engineering Report"), not generic landing pages.
+    - At most one trade press source (TechCrunch, The Information, etc.). Use trade press to round out, not anchor.
+    - No PR aggregator wires (BusinessWire, PRNewswire, GlobeNewswire) as primary sources — they republish corporate press releases verbatim, they are not journalism. Find the trade-press follow-up or the underlying primary record (the actual FedRAMP listing, the actual product page, the actual blog post).
+    - No standalone job-board sources in COMPANY_SOURCES (Greenhouse, Lever, /careers). Job activity belongs in JOB_LISTINGS.
+    - Source titles must describe content, not just outlet. Format: `[Outlet] — [Specific topic]`. Good: `"Datadog Engineering — LLMs for Postmortems (Bits AI)"`. Bad: `"Datadog Blog"` (which post?), `"Celonis AI copilot"` (no outlet attribution).
+    - The May 5 V2 Celonis card shipped 3 sources (BusinessWire press release + TechCrunch + Greenhouse job board). Below the hard floor — that's the failure mode this rule prevents. See TEMPLATE_GUIDE Section 9.12.
+
+13. **GTM thesis must be personnel-durable.** The `gtm_thesis` describes *why this company is a structural fit* and must survive personnel changes. Specific named individuals (target-company contacts, Primary teammates, intro paths) belong in `CONTACT_MAP` (the Connections section), which is the dynamic layer. Buyer and Champion in the thesis are *role types* (V1: "Platform Engineering / Site Reliability lead", "Security/Compliance leadership"), not specific humans. If every named individual in the thesis left their job tomorrow, the thesis must still hold. The May 5 V2 Capital One thesis named John Morgan, Vivek Gupta, Prem Natarajan, and Alex by name and called Capital One "the highest-warmth Stage-2 account" — every claim there breaks if one of those four rotates roles. See TEMPLATE_GUIDE Section 9.3.
 
 ---
 
@@ -724,7 +755,11 @@ The "EXCLUDE" clause is doing real work. Webset agents respect negative phrasing
 
 **6d, searchCount**
 
-Default: **35**. Final dashboard typically features 18-22 companies, so oversample by ~70% to drop weak matches without re-running. Lower to 25 if cost is a concern; raise to 45 if the founder vertical is broad and the lookalike list is large. Don't go below 25, a thin Webset means a thin dashboard.
+Default: **15**. Final dashboard target is **10 companies** total. Oversampling 50% allows you to drop the 3-5 weakest Webset returns during Phase 6i curation without re-firing. Lower to 12 if criteria are tight and quality is high; raise to 20 if the founder vertical is broad and you want more options to curate from. Don't go below 12, a thin Webset means no curation room.
+
+**Why 10, not 30:** founders walk through 3 companies max in any demo. Wide coverage hurts more than it helps. 10 companies of high-quality, deeply-researched data beats 30 companies of mixed quality. The skill is biased toward depth-per-company, not breadth.
+
+**Adjusting for force-includes.** Subtract from this number for each company you'll force-include from CONTEXT.md (signed design partners, named pipeline accounts, founder-named ICP picks). Example: if the founder has 4 signed design partners that must be in the dashboard, set searchCount to 10 (you only need 6 more from the Webset to reach 10 total). For Tom's case in May 5 (with 18 named picks), searchCount could have been as low as 8 since most slots were already spoken for.
 
 **6e — Write the searchCriteria**
 
@@ -742,6 +777,46 @@ Recommended 5-criterion structure:
 3. Geographic (headquartered in [US + Canada from config.json])
 4. Scale/maturity (revenue threshold or public-trading status)
 5. Vertical-specific signal (production use of [product capability])
+
+**Source-type diversification (read this carefully — it determines what universe of companies surfaces):**
+
+Every criterion implicitly reads against a particular part of the web. If all 5 criteria read against the same part, Webset converges on whichever companies are loudest in that part — and you get a one-note result. The May 5 V2 Valar build is the example: 4 of 5 criteria read against compliance/regulatory text (data residency, sovereignty, GDPR-style framing), so Webset hunted in regulatory disclosures and brought back European banks. That wasn't a curation failure; it was a criteria authoring failure that compounded downstream.
+
+The fix is to tag each criterion with the part of the web it reads against, then check that the set spans at least 3 different parts.
+
+Source types to tag against:
+
+| Tag | Reads against | Example criterion phrasing |
+|---|---|---|
+| `[regulatory]` | SEC filings, compliance disclosures, regulatory pages | "Operates under data residency obligations" |
+| `[earnings]` | Earnings call transcripts, IR commentary | "AI inference cited as cost or margin pressure in earnings" |
+| `[engineering]` | Engineering blogs, technical docs, GitHub | "Has published engineering content on inference architecture or LLM serving" |
+| `[product]` | Product announcements, news, press | "Has named AI product in production (not roadmap)" |
+| `[founder-anchor]` | Imported founder CSV / named pipeline | "Listed in founder's outbound CSV" (uses Webset `scope` parameter, not criteria) |
+
+**Discipline:** before submitting the spec, write each criterion followed by its tag. Then count distinct tags. If fewer than 3 distinct tags, revise — replace duplicate-tag criteria with criteria that read against an underrepresented part.
+
+Worked example, Valar:
+
+❌ **Same-tag stacking** (the May 5 failure mode):
+1. "Operates under data residency obligations" `[regulatory]`
+2. "Subject to data sovereignty regulations" `[regulatory]`
+3. "Customer data restricted to specific jurisdictions" `[regulatory]`
+4. "Regulatory framework requires data localization" `[regulatory]`
+5. "Headquartered in US or Canada" `[geographic]`
+
+→ 1 distinct content tag. Webset hunts in regulatory disclosures, finds European banks (loudest in that corpus), returns them.
+
+✅ **Diversified across parts**:
+1. "Operates under data residency or compliance obligations (PCI DSS, HIPAA, SOC 2, FedRAMP, GDPR)" `[regulatory]`
+2. "AI inference cited as cost or margin pressure in earnings calls or engineering content" `[earnings + engineering]`
+3. "Has named AI product in production with public technical write-up" `[product + engineering]`
+4. "Headquartered in US or Canada" `[geographic]`
+5. "NOT primarily an inference platform / model-serving vendor" `[exclusion]`
+
+→ 4 distinct content tags. Webset hunts in regulatory text, earnings transcripts, AND engineering blogs. The same Valar ICP, but the universe of candidate companies now includes Datadog (loud in engineering blogs about Bits AI), Plaid (loud in CFPB compliance text AND fintech engineering posts), and CrowdStrike (loud in earnings call AI commentary AND security engineering content) — alongside the regulated-industry banks the first version found.
+
+This is not vertical diversification (a banking-vertical FDI still gets banks). It's *evidence-source* diversification within whatever vertical the founder targets. A banking-vertical FDI gets banks via 3 different lines of evidence per company instead of 1.
 
 **6f — Pre-Webset checkpoint**
 
@@ -769,12 +844,15 @@ WEBSET SPEC PROPOSAL:
 searchQuery (the buyer profile paragraph, full text):
 > [paste here]
 
-searchCriteria (3-5 hard filters):
-- [criterion 1]
-- [criterion 2]
+searchCriteria (3-5 hard filters, each tagged with the part of the web it reads against):
+- [criterion 1]  [tag]
+- [criterion 2]  [tag]
 - ...
 
-searchCount: 35 (oversample by ~70% — final dashboard 18-22 companies)
+Source-type coverage: [N] distinct content tags across [M] criteria
+(target: at least 3 distinct content tags — regulatory, earnings, engineering, product, exclusion, geographic — so Webset hunts in multiple parts of the web rather than converging on one)
+
+searchCount: 15 (oversample by 50% — final dashboard 10 companies)
 entity: company
 
 enrichments (8-12 columns, full descriptions):
@@ -805,7 +883,7 @@ preview_webset returned:
 - Auto-generated criteria: [list]
 - Notable divergence from my proposal: [flag any]
 
-Total: ~30 companies × ~10 enrichments. Estimated cost ~$5-8. Estimated time 5-10 min.
+Total: ~15 companies × ~10 enrichments. Estimated cost ~$2-4. Estimated time 5-10 min.
 
 Before I fire this, please confirm:
 1. Does the searchQuery accurately describe [Founder]'s buyers (not peers/vendors)?
@@ -825,7 +903,7 @@ After user confirmation, save the spec to disk first (for reproducibility), then
 cat > webset-spec.json <<'EOF'
 {
   "searchQuery": "...",
-  "searchCount": 35,
+  "searchCount": 15,
   "searchEntity": {"type": "company"},
   "searchCriteria": [...],
   "enrichments": [...]
@@ -840,7 +918,7 @@ Now call `create_webset` with the spec. The response contains a webset ID, captu
 
 ```
 Webset submitted. ID: webset_abc123
-Searching for ~35 companies, populating ~10 enrichment fields per company.
+Searching for ~15 companies, populating ~10 enrichment fields per company.
 Estimated time: 5–10 minutes.
 
 Monitor progress at: dashboard.exa.ai/websets/webset_abc123
@@ -868,7 +946,7 @@ Now post a summary to the user:
 
 ```
 WEBSET COMPLETE:
-- Companies returned: 28 (requested 35)
+- Companies returned: 13 (requested 15)
 - Matching all criteria: 21
 - Matching most criteria: 7 (review case-by-case)
 - Enrichments fully populated: 23/28
@@ -891,46 +969,43 @@ Wait for confirmation.
 
 **6i — Curate the final company list**
 
-Before contact discovery and data.js population, you need to commit to a final list. This is the moment to drop weak matches, add specific founder-named companies that the Webset missed, and lock in segment assignments. Don't skip this, the dashboard's quality is bounded by which companies make the cut.
+Before contact discovery and data.js population, commit to a final list of **exactly 10 companies**. This is the moment to drop weak matches, add specific founder-named companies that the Webset missed, and lock in segment assignments. Don't skip this, the dashboard's quality is bounded by which companies make the cut.
 
-Three categories of edits to make explicit with the user:
+**Prioritization rule (apply in order until you have 10):**
 
-**Drop:**
-- Vendor/peer false positives (already flagged in 6h)
-- Companies with sparse enrichments (>30% blank fields) where you can't find supplemental data via web search
-- Companies that match criteria but don't fit the founder's actual GTM motion (e.g., wrong size, wrong region, named exclusion in CONTEXT.md)
+1. **Signed design partners** (Pipeline). Always include all of them. These are the credibility anchors.
+2. **Named active pipeline accounts** (Pipeline). Include if there's room and the founder mentioned them by name in the memo or transcripts.
+3. **Founder-named ICP picks** (Enterprise or Mid-Market). The companies the founder explicitly listed. Prioritize ones with strong public data signal so the dashboard entries can be deeply researched.
+4. **Webset returns ranked by enrichment quality** (Mid-Market or Enterprise). The strongest signal across the 4 axes wins. Skip any company you can't get to a high-confidence entry on.
 
-**Add:**
-- Lookalike anchors from CONTEXT.md that the Webset didn't surface (often the case when a company's web presence is thin even though they're a perfect ICP fit)
-- Companies the founder named in transcripts/memos that didn't make it through Webset criteria
-- Pipeline / design-partner companies (Pipeline segment of the dashboard, these go in regardless)
+If the founder has more than 10 named picks (rare but possible, like Tom's 18 in May 5), pick the 10 with the strongest combination of (a) public data signal, (b) named in pipeline vs only in spreadsheet, (c) warm-intro paths from the Primary network. Document the cut list in BUILD_NOTES.md so the founder knows what didn't make it and why.
 
-For added-back companies, you need to manually research them: pull data via `Exa:web_search_exa` and `Exa:web_fetch_exa` to populate the same enrichment fields the Webset produced for others. Or use `create_enrichment` on the existing Webset to add specific companies via the import flow if they're missing entirely.
+**If a company would land in the dashboard but you can't get to a deeply-researched entry on it, drop it.** Better to ship 9 strong entries than 10 with one weak. Pad the slot only if there's a clear-quality candidate to fill it.
 
 **Segment assignment:**
-- Pipeline = signed design partners + named active pipeline accounts (from CONTEXT.md)
-- Mid-Market = Stage 1 ICP (the founder's "easier to convert" segment)
-- Enterprise = Stage 2 ICP (founder's larger/longer-cycle targets)
+- Pipeline = signed design partners + named active pipeline accounts (from CONTEXT.md). Typically 3-5 of the 10 slots.
+- Mid-Market = Stage 1 ICP (the founder's "easier to convert" segment). Typically 2-4 slots.
+- Enterprise = Stage 2 ICP (founder's larger/longer-cycle targets). Typically 2-3 slots.
 
-Some companies will fit multiple segments. The default rule: if a company is in Pipeline, it goes in Pipeline regardless of size. If it's not, size + signal strength determines segment.
+Some companies will fit multiple segments. Default rule: if a company is in Pipeline, it goes in Pipeline regardless of size. If not, size + signal strength determines segment.
 
 Post the final list to the user as a structured proposal:
 
 ```
-FINAL COMPANY LIST PROPOSAL:
+FINAL 10-COMPANY LIST PROPOSAL:
 
-Pipeline ([N] companies):
-- [Company A] — [signed design partner / active pipeline / named in pipeline]
-- [Company B] — [...]
+Pipeline ([N] companies, signed/active):
+- [Company A] — signed design partner
+- [Company B] — named active pipeline (memo)
 - ...
 
-Mid-Market ([N] companies):
-- [Company C] — Webset rank 4, all 4 axes ≥3
+Mid-Market ([N] companies, Stage 1 ICP):
+- [Company C] — founder-named pick + Webset rank 3, all 4 axes ≥3
 - [Company D] — Webset rank 7, strong residency signal
 - ... 
 
-Enterprise ([N] companies):
-- [Company E] — Webset rank 1, scale + opportunity signal
+Enterprise ([N] companies, Stage 2 ICP):
+- [Company E] — founder-named pick + Webset rank 1, scale + opportunity signal
 - ...
 
 DROPPED from Webset (with reasons):
@@ -938,11 +1013,12 @@ DROPPED from Webset (with reasons):
 - [Company Y] — sparse enrichments, couldn't supplement
 - [Company Z] — wrong-size/wrong-region for ICP
 
-ADDED to fill gaps (need manual enrichment):
-- [Lookalike anchor from CONTEXT.md not in Webset]
-- [Founder-named company missed by Webset]
+DOCUMENTED BUT NOT INCLUDED (founder-named, didn't make 10-slot cut):
+- [Founder-named company]: weaker public signal, can't research to high confidence
+- [Founder-named company]: more relevant for next iteration
+(These go in BUILD_NOTES.md so the founder sees the cut list.)
 
-Total: [N] companies (target: 18-22).
+Total: 10 companies.
 
 Confirm or revise before I move to contact discovery + data.js population.
 ```
@@ -1107,7 +1183,7 @@ If specific enrichments are blank for many companies (sparse data):
 
 **Cost awareness**
 
-A real test on May 4 with 5 companies × 3 enrichments returned in ~5 minutes for ~$0.50–1. Production Webset of 30 companies × 10 enrichments ≈ $5–8, ~5–10 minutes. Lovelace per-call. Total per FDI build: $7–15.
+A real test on May 4 with 5 companies × 3 enrichments returned in ~5 minutes for ~$0.50–1. Production Webset of 15 companies × 10 enrichments ≈ $2–4, ~5–10 minutes. Lovelace per-call. Sumble fetches minimal. Total per FDI build: $3–8.
 
 ### Phase 7: Populate data.js
 
@@ -1136,38 +1212,79 @@ cp template/data.js data.js
 
 1. **Pick the right segment**, based on signal strength + ICP match (Pipeline if signed/active, Mid-Market for Stage 1 ICP, Enterprise for Stage 2).
 
-2. **Set `tier`**, `'high'` if all axes scored 4+ AND the company is signed/in-pipeline OR has a strong warm intro; `'med'` for strong ICP fit with mixed axis scores; `'low'` for speculative pattern-matches without warm path. Aim for the V1 distribution across ~30 companies: 10 high, 12 med, 8 low. If everything is `'high'`, tiers carry no information.
+2. **Set `tier`**, `'high'` if all axes scored 4+ AND the company is signed/in-pipeline OR has a strong warm intro; `'med'` for strong ICP fit with mixed axis scores; `'low'` for speculative pattern-matches without warm path. With the 10-company target, aim for roughly **5 high / 4 med / 1 low**. If you have no `'low'` candidates worth including, drop the slot — better 9 entries you'd demo than 10 with one weak. If everything is `'high'`, tiers carry no information; force at least 2-3 into `'med'` based on which had less verifiable enrichment data.
 
 3. **Write `subtitle` in V1 pattern**, *[what the company is], [why-they-fit-the-founder phrase], [founder relationship status]*. One sentence, dense, signal-rich. See TEMPLATE_GUIDE.md Section 9.1.
 
 4. **Write `overview` in V1 pattern**, 3-5 sentences that name the company's position in the founder's market story, specify the data sensitivity in concrete terms (not abstract), and connect the company to a category-level reference. See Section 9.2.
 
-5. **Fill the 3 sections** (Profile / [renamed Opportunity] / GTM Strategy) directly from Webset enrichments:
-   - Profile: ~6 rows. Last row is always founder-relationship status. Cite source materials inline. See Section 9.8.
-   - Opportunity: ~4 rows. Estimated Spend always uses a range. Pain Points uses contractual/business language, not technical jargon.
-   - GTM Strategy: ~5 rows. Urgency Level uses uppercase action verbs (EXECUTE / HIGH / WARM / MED / COLD / DEFER). Target Buyer splits Buyer + Champion when both are knowable. Messaging Angle includes a quoted opening line.
+5. **Fill the 3 sections** (Profile / Inference Footprint / GTM Strategy) directly from Webset enrichments. Locked field sets — do NOT add fields beyond these:
+   - **Profile (5 rows exactly)**: Industry, Revenue, Employees, Cloud Provider, AI Maturity. Do not add Founded, Headquarters, "Valar Status" (or any "[Founder] Status"), Stage, ICP Tier, or Business Type — those duplicate information shown elsewhere. The relationship status lives in the `tags` array as a brand-color chip, not as a profile row. See Section 9.8.
+   - **Inference Footprint (4 rows exactly)**: Use Cases, Current Stack, Pain Points, Estimated Spend.
+     - Pain Points must lead with the financial consequence (margin compression, COGS impact, gross-margin drag), then list constraints. CFO language, not engineer language. See Section 9.8.
+     - Estimated Spend always uses a range AND shows the estimation method in parens. NEVER write "needs verification", "TBD", "unknown", or any placeholder — either compute the range with a defensible method, or omit the row entirely.
+   - **GTM Strategy (5 rows exactly)**: Approach, Key Evidence, Urgency Level, Target Buyer, Messaging Angle. Urgency Level uses uppercase action verbs (EXECUTE / HIGH / WARM / MED / COLD / DEFER). Target Buyer splits Buyer + Champion when both are knowable. Messaging Angle includes a quoted opening line.
 
 6. **Score the founder-specific axes 0–5** and write the trio for each: score + bullet signals + reasoning paragraph. See Section 9.5-9.7. The reasoning paragraph should be honest about challenges (V1 Mastercard's `opp_reason` flagged in-house expertise as a hurdle), credibility carries.
 
 7. **Write `gtm_thesis` in the V1 three-sentence pattern**: anchor sentence + motion sentence + buyer call-out. Splice verbatim founder quotes from `inputs/granola-*.txt` or CONTEXT.md if they fit. End with `**Buyer:** [persona]` (and `**Champion:**` if known), use **NOT [persona]** when the founder has named antagonist personas. See Section 9.3.
 
-8. **Write `tags` 3-5 chips with mixed colors** (`Valar`/`brand` for relationship, `stack` for technical/constraint, `hw` for hard constraint, `hiring` for hiring signal, `neutral` for factual). Tooltips required if the tag is non-obvious. Hiring tags prefixed with the role being hired (e.g., `'Hiring: ML Platform'` for inference founders, `'Hiring: RCM'` for healthcare workflow, `'Hiring: Payments'` for fintech). See Section 9.4.
+   **Durability constraint:** the thesis must survive personnel changes. Buyer and Champion in the gtm_thesis are *role types* / personas (V1: "Platform Engineering / Site Reliability lead", "Security/Compliance leadership"), NOT specific named individuals. Specific names belong in `CONTACT_MAP` (the Connections section), which is the dynamic layer.
+
+   Forbidden in the gtm_thesis:
+   - Specific named individuals at the target company ("John Morgan, Managing VP Product")
+   - Specific named individuals at Primary who can intro ("Vivek Gupta, warm via Alex")
+   - Comparative warmth claims that hinge on personnel ("highest-warmth account in the FDI")
+   - Specific warm-intro paths ("via Alex", "lead with Vivek")
+
+   Allowed in the gtm_thesis:
+   - Persona/role-type buyer + champion (always)
+   - Antagonist exclusions as roles ("NOT ML engineering function broadly")
+   - Verbatim founder quotes from CONTEXT.md (strategic anchors, not personnel facts)
+   - Aggregate warm-contact counts as descriptive attributes ("Primary has multiple warm contacts here") — but framed as attribute, not strategy
+   - Founder relationship status if it's structural ("signed design partner", "named pipeline pick")
+
+   The May 5 V2 Capital One thesis hinged on Prem Natarajan, John Morgan, Vivek Gupta, and Alex by name. If any of those four leaves their current role tomorrow, the thesis breaks. V1's Capital One thesis described the same company in durable terms — culture, technology fit, business need, contact-count-as-attribute — and would survive any personnel rotation.
+
+8. **Write `tags` 3-5 chips with mixed colors** (`Valar`/`brand` for relationship, `stack` for technical/constraint, `hw` for hard constraint, `hiring` for hiring signal, `neutral` for factual). Tooltips required if the tag is non-obvious. Hiring tags prefixed with the role being hired (e.g., `'Hiring: ML Platform'` for inference founders, `'Hiring: RCM'` for healthcare workflow, `'Hiring: Payments'` for fintech). **Banned tag values** (do not use): `Stage-1 ICP`, `Stage-2 ICP`, `Stage 1`, `Stage 2`, `Pipeline`, `Mid-Market`, `Enterprise`, `Target`, `ICP`, `In ICP`, or any other segment-classification meta-tag. Tags must reference product names, technical stack, constraints, relationship status, or hiring signals — never segment classification (the segment is already shown by the tab). See Section 9.4.
 
 9. **Populate `CONTACT_MAP`** with platform/infrastructure leadership keyed exactly to `SEGMENTS[].companies[].name` (character-for-character match including parentheses). Read from `lovelace-contacts.json`. Persona discipline reflects founder antagonist warnings, exclude personas the founder has flagged. Cross-reference Primary network for warm intros. See Section 9.10.
 
 10. **Populate `JOB_LISTINGS`** from `sumble-jobs.json` (Phase 6j). Each company's `jobs[]` array maps to JOB_LISTINGS entries with title, team, location, URL. If a company has empty jobs in Sumble data, leave its JOB_LISTINGS entry empty rather than backfilling with weaker data.
 
-11. **Populate `COMPANY_SOURCES` and `RESIDENCY_MAP`** from `webset-response.json`. Sources should be third-party (SEC, Bloomberg, Reuters, engineering blogs). Avoid the company's own marketing pages.
+11. **Populate `COMPANY_SOURCES`** from `webset-response.json` PLUS targeted web fetches. Source list quality is what readers use to judge the rest of the dashboard. Counts and rules:
+    - **Target: 6 sources per company** (V1 averages 6; the May 5 V2 Celonis shipped 3 — don't repeat that).
+    - **Hard floor: 4 sources.** Below 4 is unacceptable. Either fetch the missing tier(s) yourself (SEC filing for public companies, engineering blog posts for tech-forward companies), drop the company's tier from `high` to `med`, or replace the company in the curated 10.
+    - **4-5 sources is acceptable but try once more to reach 6** before moving on, especially if Tier 1 or Tier 2 sources are missing.
+    - **For public companies: ≥1 SEC filing.** 10-K, 10-Q, S-1, DEF 14A, or 8-K from sec.gov. If the company is publicly traded and your Webset enrichment didn't surface a 10-K, fetch one yourself: `Exa:web_search_exa` with query `"<company> 10-K SEC EDGAR"` and add the top result.
+    - **For tech-forward companies: ≥2 named engineering blog posts.** Posts with specific technical titles ("LLMs for Postmortems", "State of AI Engineering"), not generic landing pages. If Webset didn't surface them, fetch from the company's `/blog` or `engineering.<company>.com`.
+    - **≤1 trade press source** (TechCrunch, The Information, etc.). Use trade press to round out, not anchor.
+    - **No PR aggregators alone.** Don't ship BusinessWire / PRNewswire / GlobeNewswire press releases as primary sources. Find the trade-press follow-up or the underlying primary record (FedRAMP Marketplace listing, the actual product page, the actual blog post). PR wires republish the company's own claims; they're distribution, not journalism.
+    - **No standalone job board sources** (Greenhouse, Lever, /careers). Job activity belongs in `JOB_LISTINGS`, not `COMPANY_SOURCES`.
+    - **Source titles describe content, not just outlet.** Format: `[Source/Outlet] — [Specific topic or filing]`. Good: `"Datadog Engineering — LLMs for Postmortems (Bits AI)"`. Bad: `"Datadog Blog"` (which post?), `"Celonis AI copilot"` (no outlet attribution). The em dash here is permitted — it's a structural separator within source titles.
+    - **Budget guardrail.** Each company should require ≤3 extra Exa fetches beyond the Webset baseline. If a company would need 5+ extra fetches to reach 6 quality sources, that's a signal the research case is thin — drop its tier or replace it.
+    - See TEMPLATE_GUIDE Section 9.12 for the full source quality hierarchy.
 
-12. **Cite via `ROW_SOURCES`** for every numeric or specific claim. Webset returns sources inline within text fields (pattern: `fact text | URL / fact text | URL`); parse these into ROW_SOURCES entries. Empty entries are fine; wrong entries are worse than nothing. Source citations must include publication and approximate date. See Section 9.9.
+12. **Populate `RESIDENCY_MAP`** from `webset-response.json`. Each entry pairs a company with a one-sentence residency/sensitivity reason that quotes the underlying source language where possible.
+
+13. **Cite via `ROW_SOURCES`** for every numeric or specific claim. Webset returns sources inline within text fields (pattern: `fact text | URL / fact text | URL`); when reading any enrichment text into a `sections` row, scan for URLs (regex `https?://[^\s\)]+`), extract them into ROW_SOURCES entries, and use the cleaned text (without inline URLs) as the row value. Density target: every Profile or Inference Footprint row containing a number, named product, regulatory standard, or other verifiable specific should have a `ROW_SOURCES` entry. The May 5 V2 build had `src` tags on only 2 of ~12 fields per company; V1 averages 5 of ~10 — close that gap by extracting URLs as a discipline, not an afterthought. Empty entries are fine; wrong entries are worse than nothing. See Section 9.9.
 
 **Self-check after each company entry, before moving on:**
 
-- Strip the company name from the `gtm_thesis`. Could you swap any other company's name in and have it still make sense? If yes, rewrite.
-- Count em dashes across the entry (subtitle, overview, gtm_thesis, all section values). Target: zero or one. If higher, rephrase using commas, periods, or parentheses.
-- Are all numeric claims sourced in ROW_SOURCES? If not, add citations or remove the claim.
-- Does the `subtitle` follow the *[what], [why-they-fit], [relationship]* pattern (using commas, not em dashes)? If not, rewrite.
-- Does the entry feel generic? If you couldn't tell it apart from another company in the same segment, the patterns aren't landing.
+- **Subtitle ≤ 18 words.** Count them. If higher, rewrite shorter. No parenthetical financial metadata ($X revenue, X employees, founded YYYY) — that belongs in the Profile section, not the subtitle. No trailing "...". See Section 9.1.
+- **No placeholder text anywhere.** Search the entry for "needs verification", "TBD", "unknown", "to be confirmed", "?", "[insert", "lorem". Any match means either fill the field with a defensible value (compute the estimate, find the source, name the product) or remove the row entirely. Never ship the placeholder. This is the single biggest credibility killer; the V2 Celonis Estimated Spend showing `$3-8M annual inference (needs verification)` is the failure mode to avoid.
+- **Profile is exactly 5 rows.** Industry, Revenue, Employees, Cloud Provider, AI Maturity. No Founded, no Headquarters, no Valar Status, no other fields. If the saved Webset enrichment supplied other fields, drop them — they don't earn their space.
+- **Inference Footprint is exactly 4 rows.** Use Cases, Current Stack, Pain Points, Estimated Spend.
+- **Pain Points leads with financial consequence.** First sentence of Pain Points should be CFO language (margin, cost, COGS, opex, cash). Constraint enumeration is the second sentence onward, not the first. If the field reads as "X; Y; Z; W" with semicolons, rewrite — that's enumeration, not framing.
+- **No banned tag values.** Search the `tags[]` array for "Stage-1 ICP", "Stage-2 ICP", "Pipeline", "Target", "ICP". If any are present, replace with product names, technical stack, constraints, or relationship status.
+- **GTM thesis swap test.** Strip the company name from the `gtm_thesis`. Could you swap any other company's name in and have it still make sense? If yes, rewrite — the thesis isn't specific enough.
+- **GTM thesis durability test.** Read the `gtm_thesis` and ask: if every named individual in this thesis left their job tomorrow, would the thesis still hold? Specifically scan for: named buyers ("John Morgan"), named champions ("Vivek Gupta"), named warm-intro paths ("via Alex"), comparative claims tied to personnel ("highest-warmth account"), specific role+name combinations ("EVP Chief Scientist Prem Natarajan"). If any are present, move them to CONTACT_MAP and replace with role types in the thesis. Buyer/Champion in the thesis are personas ("Platform Engineering leadership"), not humans.
+- **Em dashes ≤ 1 per entry.** Count em dashes across the entry (subtitle, overview, gtm_thesis, all section values). Target: zero or one. If higher, rephrase using commas, periods, or parentheses.
+- **Source citation density.** Count cited rows in Profile + Inference Footprint. V1 averages 5 of ~10. If your entry has fewer than 4 of 9 cited, you missed URL extraction in step 13 — go back and parse the Webset enrichment text more carefully.
+- **COMPANY_SOURCES count.** Open the entry's source list. Count it. Target is 6 (V1 average). Hard floor is 4 — under 4 means escalate (extra Exa fetches for missing tier, or drop the company's tier, or swap company). 4-5 is acceptable if Tier 1 / Tier 2 quality is present, but try once more to reach 6 first. The May 5 V2 Celonis shipped 3 sources (BusinessWire + TechCrunch + Greenhouse) — that's the failure mode this check prevents.
+- **No PR-aggregator-only sourcing.** If COMPANY_SOURCES is anchored on BusinessWire / PRNewswire / GlobeNewswire press releases without a Tier 1 (SEC) or Tier 2 (engineering blog) source alongside, the source list is too weak. Find the trade-press follow-up or the underlying primary record.
+- **Source titles describe content.** Each entry in COMPANY_SOURCES should follow `[Outlet] — [Specific topic]` format. Bare outlet names ("Datadog Blog") or bare article titles ("Celonis AI copilot") fail the test. See TEMPLATE_GUIDE Section 9.12.
+- **Generic test.** If you couldn't tell the entry apart from another company in the same segment, the patterns aren't landing.
 
 If a company entry fails any check, fix before adding the next.
 
