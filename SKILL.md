@@ -150,6 +150,67 @@ These rules apply to every piece of text you write into CONTEXT.md, data.js fiel
 
 ---
 
+## Interaction model
+
+The skill is designed to run mostly in the background. Don't interrupt the user for decisions you can make from documented best practice. When you DO need input, ask one question at a time, never batches.
+
+**One question at a time.** When the user is genuinely needed for input, post one question and wait. Never bundle two or three questions into the same turn. The terminal flow is better with sequential turns, the user can answer faster, and partial answers don't leave the build half-confused. This applies in Phase 0 (already enforced) and especially in Phase 2 (gap questions), where the prior pattern of grouping by theme caused user fatigue.
+
+**Stop only for significant decisions.** A "significant" decision is one where:
+- It costs money to undo (Webset fire)
+- It shapes most of the rest of the build (signal axes when non-standard, final 10-company list)
+- It depends on founder-specific signal you can't derive from `inputs/` (named lookalikes, the wow signal, exclusions when the docs don't contain them, geographic scope when the founder works outside US/Canada)
+- The user has explicit final-cut authority (the curated 10 list before population)
+
+A "minor" decision is one where:
+- The cost of being wrong is low and reversible (Phase 1 absorbed summary, Phase 3 extraction check, Phase 6h Webset summary)
+- Best practice is well-documented (the standard 4-axis Valar pattern when the founder is in the inference vertical, the standard 3-segment structure, the standard hiring keyword regex when the vertical is in the per-vertical templates)
+- The user can intervene afterward if they disagree (curation can be reopened; data.js can be rewritten per-company)
+
+**Default to auto-proceed on minor decisions.** Post a brief status update (1-3 lines, what you decided + why) and continue. Don't pause. The user can interrupt at any time.
+
+**Significant-vs-minor by phase:**
+
+| Phase | Decision | Mode |
+|---|---|---|
+| 0a-b | Founder name, slug, description, geo scope, docs path | **Stop** (one question at a time) |
+| 0c | Inputs inventory | **Auto-proceed** if required minimum present (memo + deck + ≥1 transcript). Post inventory and continue. Stop only if a required input is missing, then ask once. |
+| 1 | Absorbed summary | **Auto-proceed**. Post the 5-8 line summary and continue to Phase 2. |
+| 2 | Gap questions | **Stop, one question at a time.** Each missing critical signal (lookalikes, exclusions, wow signal, founder voice quotes) is a separate question. Skip themes that are already answered in `inputs/`. |
+| 3 | Extraction check | **Auto-proceed**. Post the checklist as visibility, continue to Phase 4. |
+| 4 | CONTEXT.md write | **Auto-proceed.** Write, commit, continue. |
+| 5 | Signal axes | **Auto-proceed if standard pattern fits** (mandatory Hiring + Opportunity + 2 founder-specific axes for an in-template vertical). Stop only if the founder's vertical isn't in the per-vertical templates and you have to invent axes from scratch. |
+| 6a-e | Webset spec drafting | **Auto-proceed** through 6a-6e. The spec assembles deterministically from CONTEXT.md + Phase 5. |
+| 6f | Webset pre-fire checkpoint | **STOP.** Paid, async, hard to undo. Always wait for explicit user go-ahead. |
+| 6g | Submit + poll | **Auto-proceed.** |
+| 6h | Webset summary | **Auto-proceed** to 6i curation unless 30%+ of returns are vendor/peer false-positives (then stop and ask whether to re-fire with stronger exclusions). |
+| 6i | Final 10-company list | **STOP.** Significant output decision; user has final cut authority. |
+| 6j | Sumble fetch | **Auto-proceed.** |
+| 6k | Lovelace contacts | **Auto-proceed.** |
+| 6m | Founder-pick research | **Auto-proceed.** |
+| 7 | data.js population | **Auto-proceed.** Subagent runs the heavy lift; main thread stays out. |
+| 8 | index.html customize | **Auto-proceed.** |
+| 9 | BUILD_NOTES.md | **Auto-proceed.** |
+| 10 | Self-check | **Auto-proceed** unless a check fails, then surface the failure and ask whether to fix or ship anyway. |
+
+**Status update format for auto-proceed moments.** Keep it tight (1-3 lines):
+
+```
+✓ Phase 1 absorbed summary: <5-line digest>. Moving to Phase 2 gap questions.
+```
+
+```
+✓ Phase 5 axes locked (standard 4-axis Valar pattern for inference vertical: Hiring + Opportunity + Inference Pain + Data Residency). Moving to Phase 6 Webset spec.
+```
+
+```
+✓ Phase 6h: 12/15 Webset returns clean, 3 vendor false-positives flagged for drop. Moving to Phase 6i curation (will pause for your final cut).
+```
+
+The user can interrupt at any auto-proceed moment by typing into the terminal. Treat any user message during auto-proceed as a potential override: stop, address it, then continue.
+
+---
+
 ### Phase 0: Founder kickoff + working directory setup
 
 Phase 0 has two paths depending on where the user activates the skill:
@@ -417,9 +478,11 @@ This is enough to proceed. Quality would improve with:
 Drop any of those into inputs/ now if you have them, then I'll re-inventory. Or say "proceed" to go with what's here.
 ```
 
-Wait for the user's go-ahead. They might say "proceed" or "let me drop a few more in", both are fine. If they're missing a *required* input, push back gently: "I can proceed but the [specific thing missing] usually carries the [specific signal it carries], without it, the [specific output] tends to be [specific quality issue]. Want to grab it before we start?"
+**Auto-proceed if required inputs are present** (memo + deck + ≥1 transcript). Post the inventory as visibility and move to Phase 1 without waiting. The user can interrupt to drop in more docs at any point.
 
-Don't be obnoxious about this. One round of "here's what I see, want to add anything?" is enough, don't ask twice.
+Stop and ask only if a *required* input is missing: "I can proceed but the [specific thing missing] usually carries the [specific signal it carries], without it, the [specific output] tends to be [specific quality issue]. Want to grab it before we start, or proceed without it?"
+
+Don't be obnoxious about this. One round of "here's what I see" is enough; don't ask twice.
 
 If the user added new files, re-run `ls -la inputs/` and post the updated inventory before proceeding.
 
@@ -455,13 +518,17 @@ Verify Websets connectivity with a quick `list_websets` call. Catching a 402/401
 
 Confusing the founder profile with the buyer profile is the most common Webset failure mode. For Valar (an inference fabric company), the *buyer* is a bank, an insurer, a cybersecurity company, an AIOps platform, companies whose core business is something other than AI infrastructure but who consume inference internally. Substrate AI (a sovereign AI cloud) is NOT a Valar buyer; it's a competitor or peer. The Webset must search for buyers, not peers.
 
-After reading, summarize what you absorbed in 5–8 lines: founder name, vertical, ICP shape, named lookalikes, named exclusions, the wow signal, notable gaps, count of verbatim quotes pulled. Wait for the user to confirm or correct.
+After reading, summarize what you absorbed in 5–8 lines: founder name, vertical, ICP shape, named lookalikes, named exclusions, the wow signal, notable gaps, count of verbatim quotes pulled. **Auto-proceed** to Phase 2 — post the summary as a visible checkpoint and continue. The user can interrupt to correct if they spot something off.
 
 Build a mental map of what's already known versus what's missing, that's what Phase 2's questions target. The user spent time gathering these docs; don't make them repeat what's already there.
 
 ### Phase 2: Ask targeted questions for what's missing
 
-After reading, identify gaps. Ask the user ONLY for the gaps. Do not ask for things clearly answered in the documents. Group questions into themes:
+After reading, identify gaps. Ask the user ONLY for the gaps. Do not ask for things clearly answered in the documents.
+
+**One question at a time, one turn each.** Don't bundle questions by theme; the user fatigues fast and partial answers leave the build half-confused. Walk the gaps in priority order (lookalikes → exclusions → wow signal → founder voice quotes → buyer personas → minor gaps). Skip any theme that's already covered in `inputs/`. After each answer, decide whether the next question is still needed (the user's last answer often resolves an adjacent gap).
+
+Question priority order, walked top-to-bottom, one at a time:
 
 **Founder & product** (skip if memo covers it)
 - Who is the founder? What's their background?
@@ -514,7 +581,7 @@ EXTRACTION CHECK:
 ~ Buyer personas — implicit in memo, needs explicit ranking from you
 ```
 
-Wait for the user's confirmation or corrections. This catches read errors in one pass.
+**Auto-proceed.** Post the checklist as visibility and move to Phase 4. The user can interrupt if any line is wrong.
 
 ### Phase 4: Generate CONTEXT.md
 
@@ -655,7 +722,9 @@ STRUCTURAL DECISIONS:
 Confirm or push back before I move to Webset spec design.
 ```
 
-Wait for user confirmation. This is the cheapest place to course-correct.
+**Auto-proceed if the standard pattern fits.** When the founder's vertical is in the per-vertical templates above (inference, healthcare workflow, fintech infra, cybersecurity, data infra), the 4-axis structure (Hiring + Opportunity + 2 founder-specific) and the standard 3-segment scaffold land cleanly. Post the axis plan as visibility and move to Phase 6.
+
+**Stop and ask** only if the founder's vertical isn't in the per-vertical templates and you have to invent founder-specific axes from scratch — that's a significant decision worth a checkpoint.
 
 ### Phase 6: Build and run the Webset
 
@@ -965,7 +1034,7 @@ Proceed to curation, or adjust the company list / re-run with different criteria
 
 **Specifically check for vendor/peer matches** that slipped past criteria, companies whose primary business is selling the founder's product category. Flag these and exclude them from data.js. If 30%+ of results are vendor/peer matches, the searchQuery's exclusion clause needs strengthening, rerun with a tighter spec.
 
-Wait for confirmation.
+**Auto-proceed to 6i curation** unless 30%+ of returns are vendor/peer false-positives — in that case, stop and ask whether to re-fire with a tighter EXCLUDE clause (a re-fire costs ~$2-4 and 5-10 min; cheaper than curating around bad returns).
 
 **6i — Curate the final company list**
 
