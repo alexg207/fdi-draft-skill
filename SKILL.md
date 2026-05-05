@@ -26,6 +26,7 @@ The output is a 90% solution. You do the last 10% — handpicking the 5 companie
   - **Basic Exa MCP** — useful as a fallback for `web_search_exa` and `web_fetch_exa` calls during company-list curation.
 - **Working directory structure** — see "Working Directory Layout" below. The skill expects raw founder docs in `inputs/`.
 - **Git installed** — the skill clones the template repo and initializes the output repo.
+- **`gh` CLI installed and authenticated** (recommended) — `brew install gh && gh auth login`. With `gh` set up, the skill creates the GitHub repo for each founder automatically. Without it, the skill creates the local repo only and you create the GitHub remote by hand later.
 - **Internet access** — for `git clone` of the template + Webset API calls.
 
 ## Working Directory Layout
@@ -77,7 +78,7 @@ Why this structure:
 9. Wait for the Webset to populate (5–10 min async).
 10. Confirm the post-enrichment summary and final company list (Phase 6h, 6i).
 11. Review the output bundle (CONTEXT.md, data.js, index.html, BUILD_NOTES.md at repo root).
-12. Iterate on copy/structure/data as needed before delivering to founder. Push to a per-founder GitHub repo when ready (`git remote add origin <url>` + `git push`).
+12. Iterate on copy/structure/data as needed before delivering to founder. The GitHub repo was created in Phase 0 — `git push` sends your changes; from there, connect to Vercel for hosting if you want a live preview URL.
 
 ---
 
@@ -100,41 +101,136 @@ This is an 11-phase build (Phase 0–10). Do not skip phases. Do not skip ahead.
 
 ---
 
-### Phase 0: Inputs check + working directory setup
+### Phase 0: Founder kickoff + working directory setup
 
-Take inventory of the working directory. Run:
+Phase 0 has two paths depending on where the user activates the skill:
+
+- **Path A — Existing build (`pwd` is already inside `~/fdi/<slug>/`):** skip to 0c. The user is iterating on a build that already exists; don't re-create anything.
+- **Path B — New build (`pwd` is `~`, `~/fdi/`, or anywhere else):** run the kickoff flow below to set up a new founder repo from scratch.
+
+**Step 0a: Detect the path.**
 
 ```bash
-pwd                                 # Confirm we're in the right place
-ls -la                              # See what's at root
-ls -la inputs/ 2>/dev/null          # See raw founder docs if present
-ls -la template/ 2>/dev/null        # See if template is already cloned
+pwd
+ls -la inputs/ 2>/dev/null && echo "INPUTS_PRESENT" || echo "NO_INPUTS"
 ```
 
-**If `inputs/` doesn't exist or is empty:** stop and ask the user where the founder docs are. Don't proceed without them.
+If `pwd` returns a path that contains `~/fdi/<something>/` AND `inputs/` exists at that path, you're on Path A — go straight to step 0c.
 
-**If `template/` doesn't exist:** clone it now.
+Otherwise you're on Path B. Run the kickoff:
+
+**Step 0b: Kickoff flow (new build).**
+
+Tell the user what's happening, then ask the questions in one batch:
+
+```
+Looks like we're starting a new FDI build. I'll set up the working directory and a 
+new GitHub repo for this founder. A few quick questions:
+
+1. Founder / company name? (e.g., "Valar", "Matterstack")
+2. Founder slug? (lowercase, no spaces — e.g., "valar", "matterstack". Used for 
+   directory name and GitHub repo name.)
+3. One-line description of the company? (For the GitHub repo description.)
+4. Where are the raw founder docs (memo, deck, transcripts)? Either a path like 
+   ~/Downloads/valar/ or "I'll drop them in once you've made the directory."
+
+I'll create:
+  - Local directory: ~/fdi/<slug>/ with inputs/ and template/ subdirectories
+  - GitHub repo: github.com/alexg207/<slug>-fdi (public, matching valar-fdi pattern)
+  - Local Git repo connected to the GitHub remote
+```
+
+Wait for the user to answer all four. Don't make up a slug — the user picks it.
+
+Once you have the answers, run setup. **Two paths depending on whether `gh` CLI is available:**
 
 ```bash
+# First, check for gh CLI
+gh auth status 2>&1 | head -3
+```
+
+**If `gh` is installed and authenticated** (no errors from `gh auth status`):
+
+```bash
+SLUG=<slug-from-user>
+DESCRIPTION=<description-from-user>
+DOCS_PATH=<path-from-user>  # e.g., ~/Downloads/valar/
+
+# Create local directory structure
+mkdir -p ~/fdi/$SLUG/inputs
+
+# Copy raw docs if user provided a path
+if [ -n "$DOCS_PATH" ] && [ -d "$DOCS_PATH" ]; then
+  cp -r $DOCS_PATH/* ~/fdi/$SLUG/inputs/
+fi
+
+# cd into the new directory
+cd ~/fdi/$SLUG
+
+# Clone the FDI template
 git clone https://github.com/alexg207/fdi-template.git template/
+
+# Initialize git
+git init
+git add inputs/ template/
+git commit -m "Phase 0: working directory setup, template cloned"
+
+# Create the GitHub remote and push
+gh repo create alexg207/$SLUG-fdi --public \
+  --description "$DESCRIPTION" \
+  --source=. \
+  --remote=origin \
+  --push
+
+# Confirm
+git remote -v
+gh repo view --web 2>/dev/null || echo "Repo created at: https://github.com/alexg207/$SLUG-fdi"
 ```
 
-The template should now be locally available. Confirm the key files are there:
-```bash
-ls -la template/
-```
+**If `gh` is NOT installed or not authenticated:**
 
-You should see at minimum: `AI_INSTRUCTIONS.md`, `TEMPLATE_GUIDE.md`, `data.js`, `index.html`, `CONTEXT_TEMPLATE.md`, `BUILD_NOTES_TEMPLATE.md`. If any are missing, the skill can't proceed — surface to the user.
-
-**If the working directory is not yet a Git repo:** initialize it:
+Do the same local setup, but skip the `gh repo create` step. Tell the user:
 
 ```bash
+mkdir -p ~/fdi/$SLUG/inputs
+# (copy docs if provided)
+cd ~/fdi/$SLUG
+git clone https://github.com/alexg207/fdi-template.git template/
 git init
 git add inputs/ template/
 git commit -m "Phase 0: working directory setup, template cloned"
 ```
 
-Now inventory the raw founder docs in `inputs/`. For each file, record name + type + rough size:
+Then surface to the user:
+
+```
+Local working directory created at ~/fdi/<slug>/.
+GitHub remote NOT created — gh CLI isn't installed or authenticated.
+
+To create the GitHub repo manually, install gh (`brew install gh`), authenticate 
+(`gh auth login`), and run:
+
+  cd ~/fdi/<slug>
+  gh repo create alexg207/<slug>-fdi --public --description "<desc>" --source=. --remote=origin --push
+
+Or do it in the GitHub web UI: github.com/new, name it "<slug>-fdi", then 
+`git remote add origin git@github.com:alexg207/<slug>-fdi.git && git push -u origin main`.
+
+I'll proceed with the build now — you can connect the remote later.
+```
+
+**After setup completes**, confirm to the user:
+
+```
+✓ Local: ~/fdi/<slug>/ initialized as Git repo with template/ cloned
+✓ GitHub: https://github.com/alexg207/<slug>-fdi (or "manual setup needed" message)
+```
+
+If the user said "I'll drop docs in later" instead of providing a path, stop here and wait for them to populate `inputs/`. Don't proceed to 0c without docs in `inputs/`.
+
+**Step 0c: Inventory the raw founder docs.**
+
+Once the working directory exists with `inputs/` populated:
 
 ```bash
 ls -la inputs/
@@ -1031,7 +1127,7 @@ Closing message to user:
 >
 > The 10% of work you still own: pick the 5 companies to lead with in the demo, fine-tune narrative for [founder]'s voice, and spot-check the [N flagged data points] from BUILD_NOTES.md.
 >
-> The repo is initialized with per-phase commits — `git log --oneline` shows the build history. To deploy, push to a new GitHub repo (`git remote add origin <url>` + `git push`) and connect to Vercel for hosting. To refresh data later, the saved Webset ID is in BUILD_NOTES.md and `webset-spec.json` is committed for reproducibility."
+> The repo is initialized with per-phase commits — `git log --oneline` shows the build history. The GitHub remote was set up in Phase 0; run `git push` to send your changes. From there, connect the repo to Vercel for a hosted preview URL. To refresh data later, the saved Webset ID is in BUILD_NOTES.md and `webset-spec.json` is committed for reproducibility."
 
 ---
 
