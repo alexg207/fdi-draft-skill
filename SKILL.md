@@ -643,9 +643,9 @@ Founder-specific:
 
 4. Data Residency
    Measures: Regulatory/contractual constraints that block multi-tenant inference clouds
-   Sources: Compliance pages, regulatory filings, customer agreements
-   Rubric: 0 = no constraints; 5 = explicit data residency in regulated geo + customer SLAs
-   Maps to: enrichment "data residency, sovereignty, or regulatory constraints"
+   Sources: Compliance pages, regulatory filings, customer agreements, engineering blog posts about AI vendor evaluations, conference talks describing failed pilots
+   Rubric: 0 = no constraints; 3 = ≥1 specific regulatory citation (HIPAA, PCI, FedRAMP, etc.); 4 = explicit residency posture in regulated geo + customer SLAs. **5 = score-4 evidence PLUS ≥1 cited tried-and-blocked vendor** (e.g., "tried Fireworks but security review blocked production deployment"). Score 5 without a cited tried-and-blocked vendor is not allowed; cap at 4. This prevents the wow axis from losing discriminating power across regulated-vertical accounts (May 5 V2 had every residency score = 4 or 5 because regulation alone was sufficient — score inflation killed UHG's signal).
+   Maps to: enrichment "data residency, sovereignty, or regulatory constraints" + "inference blocker evidence"
 
 STRUCTURAL DECISIONS:
 - Segments: Pipeline / Mid-Market / Enterprise (default kept)
@@ -1085,11 +1085,19 @@ git add sumble-jobs.json
 git commit -m "Phase 6j: Sumble job postings (N/M companies covered)"
 ```
 
-**Step 5: Companies not on Sumble.**
+**Step 5: Fallback ladder when Sumble is empty or company isn't tracked.**
 
-If a company isn't on Sumble (rare for tech-forward US companies, more common for non-tech enterprises), set `sumble_url: null` and `jobs: []`. Phase 7's JOB_LISTINGS field will be empty for those companies, which is correct: better empty than wrong.
+Sumble is the primary source, but it doesn't cover every company. For non-tech enterprises (banks, insurers, retailers, manufacturers) Sumble coverage is uneven. Don't default to empty `jobs: []` — work the fallback ladder before giving up:
 
-**Why Sumble specifically:** generic job board enrichment via Webset returns inaccurate role descriptions and stale postings (validated in May 5 test build). Sumble tracks company-specific hiring with structured role/team/location data. Higher signal, lower noise.
+1. **Sumble company page** (primary). Try `https://sumble.com/company/<slug>` first. If hit, extract jobs and skip the rest.
+2. **`careers.<domain>` direct fetch.** `Exa:web_fetch_exa` against `careers.<company>.com` or `<company>.com/careers`. Filter results by the Phase 5 hiring keyword regex. Capture title + URL + posting date if visible.
+3. **LinkedIn job search by company.** `Lovelace:search_linkedin_profiles` won't help here, but `Exa:web_search_exa` with query `linkedin.com/jobs "<Company>" "<role keyword>"` (e.g. `"Capital One" "ML Platform"`) usually surfaces 1-3 specific reqs. Take only ones whose company field exactly matches (LinkedIn returns adjacent companies sometimes).
+4. **Greenhouse / Lever / Ashby boards** if the company uses them. `Exa:web_search_exa` with `boards.greenhouse.io/<slug>` or `jobs.lever.co/<slug>`.
+5. **Last resort: empty.** If steps 1-4 all return zero relevant roles, set `jobs: []` and note `fallback_attempted: ["sumble", "careers", "linkedin", "ats"]` in `sumble-jobs.json` so Phase 7 knows the gap is researched, not skipped.
+
+The hard floor is **≥1 verified job per company in tier='high'**. If a tier='high' company has zero jobs after the full ladder, drop it to tier='med' before Phase 7. The May 5 V2 build had 27 of 30 JOB_LISTINGS empty because Webset's enrichment returned NULL and the skill stopped there; the ladder above is what fills the gap.
+
+**Why Sumble first:** generic job board enrichment via Webset returns inaccurate role descriptions and stale postings (validated in May 5 test build). Sumble tracks company-specific hiring with structured role/team/location data. Higher signal, lower noise. The fallbacks fire only when Sumble has no record.
 
 **6k — Contact discovery via Lovelace**
 
@@ -1181,9 +1189,63 @@ If specific enrichments are blank for many companies (sparse data):
 1. Reword the enrichment description (often a phrasing or sourcing issue)
 2. Add a fallback enrichment via `create_enrichment` on the existing Webset
 
+**6m — Targeted research for founder-named picks not surfaced by Webset**
+
+Founder-named accounts (signed design partners, named pipeline, ICP picks from a CSV) often don't surface in Webset because Webset is a *discovery* tool — it finds new ICP-fit companies, it doesn't validate the founder's existing list. The May 5 V2 build had 18 founder-named picks; Webset surfaced only 2 (Capital One, Bank of America). The other 16 went into Phase 7 with thin sourcing because the build skipped this step.
+
+**Don't skip this phase for founder-named accounts.** They are the highest-stakes entries in the dashboard — these are the companies the founder's pitch hinges on, and shallow entries here are the most-noticed quality gap.
+
+**Step 1: Identify the gap.**
+
+After Phase 6i curation, list every company in the curated 10 that did NOT come back from Webset. This is the founder-named-pick research backlog.
+
+```bash
+# Compare curated list against Webset returns
+# Output: list of companies needing per-company directed research
+```
+
+**Step 2: Per company, run a 4-query directed research pass.**
+
+For each founder-named pick not in Webset, run these 4 `Exa:web_search_exa` queries in parallel:
+
+1. `"<Company> 10-K SEC EDGAR"` — gets the SEC filing for public companies. For private, swap to `"<Company> latest funding round" OR "<Company> annual revenue"`.
+2. `"<Company> AI inference engineering blog"` — surfaces engineering content. Add `engineering.<company>.com` to the query if the company is known to host one.
+3. `"<Company> Chief AI Officer" OR "<Company> VP Platform Engineering"` — leadership / champion personas.
+4. `"<Company> earnings call AI infrastructure"` for public companies, OR `"<Company> AI strategy"` press for private.
+
+For regulated-vertical companies (banks, insurers, healthcare), add a 5th query targeting the wow signal:
+
+5. `"<Company> Fireworks OR Together OR Baseten OR Modal OR Anyscale failed OR blocked OR security OR compliance"` — surfaces tried-and-blocked evidence (the Data Residency axis 5 requirement).
+
+**Step 3: Save to disk.**
+
+```bash
+# founder-pick-research.json structure:
+# {
+#   "Mastercard": {
+#     "sec_filing": {"title": "Mastercard 2024 10-K", "url": "...", "snippet": "..."},
+#     "engineering_content": [{"title": "...", "url": "...", "date": "..."}, ...],
+#     "leadership": [{"name": "...", "title": "...", "linkedin": "..."}, ...],
+#     "earnings_signals": [{"quote": "...", "source": "...", "date": "..."}, ...],
+#     "tried_and_blocked": [{"vendor": "Fireworks", "blocker": "...", "source_url": "..."}] // empty if none found
+#   },
+#   "Walmart": { ... },
+#   ...
+# }
+
+git add founder-pick-research.json
+git commit -m "Phase 6m: targeted research for N founder-named picks not in Webset"
+```
+
+**Step 4: Phase 7 reads from this file.**
+
+When populating data.js for any founder-named pick, Phase 7's source data is the union of `webset-response.json` (if the company is there, rare) AND `founder-pick-research.json` (where most founder-named picks live). Phase 7 must reach the same source-quality floor (≥4 sources, ≥1 SEC filing for public, ≥2 engineering blog posts for tech-forward) for founder-named picks as for Webset-discovered ones.
+
+**Why this matters:** the dashboard's credibility scales with its weakest entry. If 8 of 10 entries have 6 sources and 2 of 10 (the founder's named picks) have 2 generic sources, the dashboard reads as inconsistent. Founder-named picks are exactly the entries where the founder will look hardest at the sources, so the source quality has to match or beat the discovered companies.
+
 **Cost awareness**
 
-A real test on May 4 with 5 companies × 3 enrichments returned in ~5 minutes for ~$0.50–1. Production Webset of 15 companies × 10 enrichments ≈ $2–4, ~5–10 minutes. Lovelace per-call. Sumble fetches minimal. Total per FDI build: $3–8.
+A real test on May 4 with 5 companies × 3 enrichments returned in ~5 minutes for ~$0.50–1. Production Webset of 15 companies × 10 enrichments ≈ $2–4, ~5–10 minutes. Lovelace per-call. Sumble fetches minimal. Phase 6m founder-pick research adds ~4-5 Exa search calls per founder-named-not-in-Webset company (so 10 picks × 5 queries × $0.05 ≈ $2.50 worst case). Total per FDI build: $5–12.
 
 ### Phase 7: Populate data.js
 
@@ -1265,7 +1327,9 @@ cp template/data.js data.js
     - **Budget guardrail.** Each company should require ≤3 extra Exa fetches beyond the Webset baseline. If a company would need 5+ extra fetches to reach 6 quality sources, that's a signal the research case is thin — drop its tier or replace it.
     - See TEMPLATE_GUIDE Section 9.12 for the full source quality hierarchy.
 
-12. **Populate `RESIDENCY_MAP`** from `webset-response.json`. Each entry pairs a company with a one-sentence residency/sensitivity reason that quotes the underlying source language where possible.
+12. **Populate `RESIDENCY_MAP`** from `webset-response.json` and `founder-pick-research.json`. Each entry pairs a company with a one-sentence residency/sensitivity reason that quotes the underlying source language where possible.
+
+    **Score-5 evidence requirement (per Phase 5 rubric).** Before assigning `data_residency: 5` to any company, the `residency_reason` must include a cited tried-and-blocked vendor (e.g., "Director of Architecture confirmed Fireworks, Together, Baseten, and Modal all evaluated; none reached production due to PHI data-handling requirements — source: <url>"). If no tried-and-blocked evidence is in `webset-response.json` (Inference Blocker Evidence enrichment) or `founder-pick-research.json` (5th query results), cap the score at 4 even if the regulatory posture would justify a 5. The May 5 V2 build assigned 5s based on regulation alone, which collapsed UHG (the actual wow exemplar) into a pool of 25 indistinguishable 4s and 5s. The wow axis only earns its weight when the top score requires the wow evidence.
 
 13. **Cite via `ROW_SOURCES`** for every numeric or specific claim. Webset returns sources inline within text fields (pattern: `fact text | URL / fact text | URL`); when reading any enrichment text into a `sections` row, scan for URLs (regex `https?://[^\s\)]+`), extract them into ROW_SOURCES entries, and use the cleaned text (without inline URLs) as the row value. Density target: every Profile or Inference Footprint row containing a number, named product, regulatory standard, or other verifiable specific should have a `ROW_SOURCES` entry. The May 5 V2 build had `src` tags on only 2 of ~12 fields per company; V1 averages 5 of ~10 — close that gap by extracting URLs as a discipline, not an afterthought. Empty entries are fine; wrong entries are worse than nothing. See Section 9.9.
 
@@ -1279,6 +1343,7 @@ cp template/data.js data.js
 - **No banned tag values.** Search the `tags[]` array for "Stage-1 ICP", "Stage-2 ICP", "Pipeline", "Target", "ICP". If any are present, replace with product names, technical stack, constraints, or relationship status.
 - **GTM thesis swap test.** Strip the company name from the `gtm_thesis`. Could you swap any other company's name in and have it still make sense? If yes, rewrite — the thesis isn't specific enough.
 - **GTM thesis durability test.** Read the `gtm_thesis` and ask: if every named individual in this thesis left their job tomorrow, would the thesis still hold? Specifically scan for: named buyers ("John Morgan"), named champions ("Vivek Gupta"), named warm-intro paths ("via Alex"), comparative claims tied to personnel ("highest-warmth account"), specific role+name combinations ("EVP Chief Scientist Prem Natarajan"). If any are present, move them to CONTACT_MAP and replace with role types in the thesis. Buyer/Champion in the thesis are personas ("Platform Engineering leadership"), not humans.
+- **Antagonist persona consistency check.** If the gtm_thesis ends with `**NOT [persona]**` (e.g., **NOT** ML engineering, **NOT** security/governance), grep the company's CONTACT_MAP entries for matching persona keywords. The titles flagged in NOT must NOT appear as recommended champions. Worked example: gtm_thesis says **NOT** Technology Governance team → CONTACT_MAP cannot list a contact whose title contains "Technology Governance" as `type: 'business'` champion. If a match exists, either drop the contact, demote them to a non-champion `note`-only entry, or rewrite the antagonist callout. The May 5 V2 Mastercard entry listed Kiran Jayant (VP Technology Governance) AND said **NOT** Technology Governance — the lint catches that contradiction.
 - **Em dashes ≤ 1 per entry.** Count em dashes across the entry (subtitle, overview, gtm_thesis, all section values). Target: zero or one. If higher, rephrase using commas, periods, or parentheses.
 - **Source citation density.** Count cited rows in Profile + Inference Footprint. V1 averages 5 of ~10. If your entry has fewer than 4 of 9 cited, you missed URL extraction in step 13 — go back and parse the Webset enrichment text more carefully.
 - **COMPANY_SOURCES count.** Open the entry's source list. Count it. Target is 6 (V1 average). Hard floor is 4 — under 4 means escalate (extra Exa fetches for missing tier, or drop the company's tier, or swap company). 4-5 is acceptable if Tier 1 / Tier 2 quality is present, but try once more to reach 6 first. The May 5 V2 Celonis shipped 3 sources (BusinessWire + TechCrunch + Greenhouse) — that's the failure mode this check prevents.
