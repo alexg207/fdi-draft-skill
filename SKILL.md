@@ -119,7 +119,7 @@ These rules apply to every piece of text you write into CONTEXT.md, data.js fiel
 
 6. **Final dashboard target: exactly 10 companies.** Founders walk through 3 companies max in any demo. Wide coverage hurts more than it helps; depth-per-company beats breadth. Don't ship 30 mixed-quality entries when 10 high-confidence entries do the job better. If a slot has no candidate worth deep research, leave it empty (9 strong > 10 with one weak).
 
-7. **No placeholder text in shipped output.** "needs verification", "TBD", "unknown", "to be confirmed", "?", "[insert ...]", "lorem ipsum" — none of these ship. If a Webset enrichment returns a placeholder string, either fill the field with a defensible value (compute the estimate yourself, find the source, name the actual product) or omit the field entirely. The May 5 V2 build shipped `Estimated Spend: "$3-8M annual inference (needs verification)"` as a row value — that's the failure mode this rule prevents.
+7. **No placeholder text in shipped output.** "needs verification", "TBD", "unknown", "to be confirmed", "?", "[insert ...]", "lorem ipsum" — none of these ship. If a Webset enrichment returns a placeholder string, either fill the field with a defensible value (compute the estimate yourself, find the source, name the actual product) or omit the field entirely. (Reference build → F1 placeholder leak.)
 
 8. **Subtitle ≤ 18 words, no parenthetical financial metadata.** The subtitle under the company name should land one signal. Don't stuff revenue, employee count, or founding year into parentheticals — that data goes in the Profile section. If the subtitle ends with "..." it's too long; rewrite shorter. See TEMPLATE_GUIDE Section 9.1.
 
@@ -136,17 +136,28 @@ These rules apply to every piece of text you write into CONTEXT.md, data.js fiel
 12. **Source quality hierarchy: 6-source target, 4-source hard floor, primary records first.** The COMPANY_SOURCES list at the bottom of each card is what readers use to judge the rest of the dashboard. Counts:
     - **Target: 6 sources** (V1 averages 6). Aim here on every company.
     - **Hard floor: 4 sources.** Below 4, the card looks thin — escalate (run extra Exa fetches for missing tiers, drop the company's tier from `high` to `med`, or replace the company in the curated 10).
-    - **Between 4 and 5 is acceptable** if the sources are quality (Tier 1 SEC filing or Tier 2 engineering blog present) — try once more to reach 6 before shipping.
-    Other requirements:
-    - For public companies: at least one SEC filing (10-K, 10-Q, S-1, DEF 14A, or 8-K from sec.gov).
-    - For tech-forward companies: at least two named engineering blog posts with specific technical titles ("LLMs for Postmortems", "State of AI Engineering Report"), not generic landing pages.
-    - At most one trade press source (TechCrunch, The Information, etc.). Use trade press to round out, not anchor.
-    - No PR aggregator wires (BusinessWire, PRNewswire, GlobeNewswire) as primary sources — they republish corporate press releases verbatim, they are not journalism. Find the trade-press follow-up or the underlying primary record (the actual FedRAMP listing, the actual product page, the actual blog post).
-    - No standalone job-board sources in COMPANY_SOURCES (Greenhouse, Lever, /careers). Job activity belongs in JOB_LISTINGS.
-    - Source titles must describe content, not just outlet. Format: `[Outlet] — [Specific topic]`. Good: `"Datadog Engineering — LLMs for Postmortems (Bits AI)"`. Bad: `"Datadog Blog"` (which post?), `"Celonis AI copilot"` (no outlet attribution).
-    - The May 5 V2 Celonis card shipped 3 sources (BusinessWire press release + TechCrunch + Greenhouse job board). Below the hard floor — that's the failure mode this rule prevents. See TEMPLATE_GUIDE Section 9.12.
+    - **Between 4 and 5 is acceptable** if the sources are quality (Tier-1 primary record + Tier-2 vertical-credible source present) — try once more to reach 6 before shipping.
 
-13. **GTM thesis must be personnel-durable.** The `gtm_thesis` describes *why this company is a structural fit* and must survive personnel changes. Specific named individuals (target-company contacts, Primary teammates, intro paths) belong in `CONTACT_MAP` (the Connections section), which is the dynamic layer. Buyer and Champion in the thesis are *role types* (V1: "Platform Engineering / Site Reliability lead", "Security/Compliance leadership"), not specific humans. If every named individual in the thesis left their job tomorrow, the thesis must still hold. The May 5 V2 Capital One thesis named John Morgan, Vivek Gupta, Prem Natarajan, and Alex by name and called Capital One "the highest-warmth Stage-2 account" — every claim there breaks if one of those four rotates roles. See TEMPLATE_GUIDE Section 9.3.
+    **Tier composition (vertical-aware — pick from the vertical's actual third-party press landscape):**
+    - **Tier 1 — primary records.** For public companies: at least one SEC filing (10-K, 10-Q, S-1, DEF 14A, or 8-K from sec.gov). For private companies: equivalent primary record — Crunchbase funding round announcement (with named lead), formal regulatory filing (FDA submission, EPA registration, FCC filing), audited financial disclosures, or named LP/investor letter. Use your knowledge of what the canonical primary record is in this company's vertical. Always at least one Tier-1 record.
+    - **Tier 2 — vertical-credible third-party sources.** ≥2 sources from the most credible third-party publications in this company's vertical. Tier-2 source landscape varies by vertical:
+      - Tech-forward verticals (inference, data infra, dev tools, cyber): named engineering blog posts with specific technical titles
+      - Industrials / manufacturing: named trade press articles (Automation World, Industrial Maintenance, ARC Advisory) + analyst notes (Forrester, Gartner Industrial)
+      - Biotech / medtech: clinical trial registries (clinicaltrials.gov), FDA filings, peer-reviewed publications, named industry press (Endpoints News, BioPharma Dive)
+      - Fintech: SEC + named industry press (American Banker, PYMNTS, Finextra) + analyst notes
+      - Consumer / retail: named industry press (Retail Dive, Modern Retail) + earnings call transcripts + investor day decks
+      - Healthcare delivery / payer: peer-reviewed publications, named health-policy press (Health Affairs, STAT, Modern Healthcare), HHS/CMS regulatory filings
+      Use your knowledge of the vertical's third-party press landscape; if you don't know what counts as Tier-2 for this vertical, fire one Exa search ("most credible trade press for [vertical]") to confirm before populating.
+    - **Tier 3 — general business press, ≤1 source.** TechCrunch, The Information, Bloomberg, Reuters, Wall Street Journal — use to round out, not anchor.
+
+    **Disqualifications:**
+    - **No PR aggregator wires** (BusinessWire, PRNewswire, GlobeNewswire) as primary sources — they republish corporate press releases verbatim; they are not journalism. Find the trade-press follow-up or the underlying primary record.
+    - **No standalone job-board sources** in COMPANY_SOURCES (Greenhouse, Lever, /careers). Job activity belongs in JOB_LISTINGS.
+    - **No corporate marketing pages** as anchors. The company's `/about`, `/customers`, generic /blog landing pages, or homepage do not count toward the source quality floor.
+
+    **Source title format:** `[Outlet] — [Specific topic]`. Each source title must describe content, not just outlet. Bare outlet names ("Datadog Blog") or bare article titles ("Celonis AI copilot") fail the test. The em dash here is permitted — it's a structural separator within source titles.
+
+13. **GTM thesis must be personnel-durable.** The `gtm_thesis` describes *why this company is a structural fit* and must survive personnel changes. Specific named individuals (target-company contacts, Primary teammates, intro paths) belong in `CONTACT_MAP` (the Connections section), which is the dynamic layer. Buyer and Champion in the thesis are *role types* (e.g., "Platform Engineering / Site Reliability lead", "Security/Compliance leadership", "VP Operations / Reliability Engineering lead"), not specific humans. If every named individual in the thesis left their job tomorrow, the thesis must still hold. (Reference build → F4 personnel-fragile thesis.) See TEMPLATE_GUIDE Section 9.3.
 
 ---
 
@@ -639,24 +650,17 @@ This is the most important creative step in the entire build. The signal axes de
 
 These you derive from the founder's docs. The question to ask: "If a savvy GTM hire at this company were to score every prospect on 4 dimensions, what would those dimensions be?" The dimensions should be what the founder cares about most, the things that, if all 4 were "high" for a target, the founder would say "yes, that's a perfect customer."
 
-For Valar, these were:
+**Worked example (illustrative, not prescriptive — the inference-vertical Valar reference build):**
+
+For Valar (BYOC inference optimization), the founder-specific axes were:
 - **Inference Pain** (do they run heavy production inference? at what scale? on what stack?)
 - **Data Residency** (do regulatory or contractual constraints block multi-tenant inference clouds?)
 
-So Valar's full axis set was: Hiring + Opportunity + Inference Pain + Data Residency = 4 axes.
+Total: Hiring + Opportunity + Inference Pain + Data Residency = 4 axes.
 
-For a healthcare workflow founder, founder-specific axes might be:
-- **Workflow Pain** (% of manual prior auth, denial volume, days in A/R)
-- **Compliance Burden** (HIPAA depth, state Medicaid friction, recent regulatory issues)
+The two founder-specific axes both came from CONTEXT.md: Inference Pain from the ICP Qualifier (>$1.5M annual inference spend) and Data Residency from the wow signal ("tried Fireworks/Together/Baseten/Modal — none reached production due to security"). Same pattern applies to every vertical: the founder-specific axes drop out of the ICP Qualifier + lookalike anchors + wow signal triangulated from CONTEXT.md.
 
-Total = 4 axes.
-
-For a fintech infra founder, founder-specific axes might be:
-- **Payment Volume** (transaction throughput, # of payment rails)
-- **Compliance Posture** (PCI DSS level, state money transmitter licenses, recent fines)
-- **Tech Debt** (legacy core banking? mainframe? old payment processor?)
-
-Total = 5 axes.
+**Derive your axes from this build's CONTEXT.md, not from a vertical lookup table.** The model knows the ICP shapes for industrials, biotech, consumer, fintech, healthcare, etc.; trust your knowledge of the vertical's signal landscape combined with the founder-specific signal already in CONTEXT.md.
 
 **How to derive the founder-specific axes:**
 
@@ -683,41 +687,52 @@ For each axis, document:
 - **Sections per company**, keep default 3 (Profile / Opportunity / GTM)? Rename the Opportunity section per founder vertical?
 - **Tab labels**, what should the segment tabs read as in the founder's language?
 
-Post the full plan to the user as a structured proposal:
+**General rubric requirements (apply to every founder-specific axis):**
+
+The score-5 ceiling on every founder-specific axis must require **cited evidence in the wow signal's evidence shape** (per CONTEXT.md's "Wow Signal" section from Phase 2). The evidence shape is whatever this build's wow signal documents would look like:
+
+- If the wow is "tried inference clouds, blocked by data security/residency" (Valar), score 5 evidence is a cited tried-and-blocked vendor.
+- If the wow is "still using Excel for downtime tracking" (industrials predictive-maintenance), score 5 evidence is a cited legacy-system reference.
+- If the wow is "Q3 earnings flagged $X capex on automation" (industrials greenfield), score 5 evidence is the earnings transcript quote.
+- If the wow is "FDA submission pending on a single-vendor pipeline" (biotech), score 5 evidence is the cited regulatory milestone.
+
+Score 5 without evidence in the wow shape is not allowed; cap at 4. This prevents wow-axis score inflation. (Reference build → F3 score inflation.)
+
+**Post the full plan to the user as a structured proposal. Example format (using the Valar reference build's axes — adapt to your vertical):**
 
 ```
 SIGNAL AXES (Phase 5):
 
 Mandatory:
 1. Hiring Score
-   Measures: Roles posted that suggest pain Valar's product would address
+   Measures: Roles posted that suggest the pain the founder's product addresses
    Sources: Job boards, careers pages, LinkedIn job listings
-   Rubric: 0 = no relevant openings; 3 = scattered openings; 5 = active hiring spree for ML platform/inference roles
-   Maps to: enrichment "active job postings"
+   Rubric: 0 = no relevant openings; 3 = scattered openings; 5 = active hiring spree for the founder-vertical roles
+   Maps to: hiring data from Phase 6j (Sumble + fallback ladder)
 
 2. Opportunity Score
    Measures: Strength of buying opportunity from public financial + strategic signals
    Sources: 10-Ks, earnings transcripts, C-suite commentary, M&A activity, leadership changes
-   Rubric: 0 = no buying signals; 3 = mild signals (moderate AI mentions); 5 = explicit AI cost/strategy commitments and recent leadership changes
+   Rubric: 0 = no buying signals; 3 = mild signals; 5 = explicit cost/strategy commitments + recent leadership changes
    Maps to: enrichment "financial signals" + "strategic commentary"
 
-Founder-specific:
-3. Inference Pain
-   Measures: Production AI inference scale and stack pain
-   Sources: Engineering blogs, conference talks, third-party press
-   Rubric: 0 = no production inference; 5 = >$10M annualized inference spend with documented stack pain
-   Maps to: enrichment "production inference workloads with scale evidence"
+Founder-specific (example shows Valar's; replace with this build's axes):
+3. [Founder-specific axis 1 — derived from CONTEXT.md]
+   Measures: [the trait that varies most across in-ICP vs out-of-ICP companies]
+   Sources: [where the signal lives — engineering blogs, trade press, regulatory filings, etc.]
+   Rubric: 0 = no signal; 3 = mild signal; 5 = strong signal + cited evidence in the wow shape
+   Maps to: [Webset enrichment column(s)]
 
-4. Data Residency
-   Measures: Regulatory/contractual constraints that block multi-tenant inference clouds
-   Sources: Compliance pages, regulatory filings, customer agreements, engineering blog posts about AI vendor evaluations, conference talks describing failed pilots
-   Rubric: 0 = no constraints; 3 = ≥1 specific regulatory citation (HIPAA, PCI, FedRAMP, etc.); 4 = explicit residency posture in regulated geo + customer SLAs. **5 = score-4 evidence PLUS ≥1 cited tried-and-blocked vendor** (e.g., "tried Fireworks but security review blocked production deployment"). Score 5 without a cited tried-and-blocked vendor is not allowed; cap at 4. This prevents the wow axis from losing discriminating power across regulated-vertical accounts (May 5 V2 had every residency score = 4 or 5 because regulation alone was sufficient — score inflation killed UHG's signal).
-   Maps to: enrichment "data residency, sovereignty, or regulatory constraints" + "inference blocker evidence"
+4. [Founder-specific axis 2 — typically the wow-signal axis]
+   Measures: [the wow-shaped trait]
+   Sources: [where the wow evidence lives]
+   Rubric: 0 = none; 3 = ≥1 cited proxy; 4 = explicit posture + secondary evidence; **5 = score-4 evidence PLUS ≥1 cited wow-shape evidence** (whatever the wow shape is for this build)
+   Maps to: [Webset enrichment column(s)]
 
 STRUCTURAL DECISIONS:
-- Segments: Pipeline / Mid-Market / Enterprise (default kept)
-- Section 2 renamed: "Opportunity" → "Inference Footprint" (per Valar vertical)
-- Tab labels: Pipeline / Mid-Market / Enterprise
+- Segments: Pipeline / Mid-Market / Enterprise (default — adjust if founder's GTM has different segmentation)
+- Section 2 rename: "Opportunity" → "[vertical-appropriate label, e.g., Inference Footprint, Workflow Footprint, Capex Footprint]"
+- Tab labels: Pipeline / Mid-Market / Enterprise (default)
 
 Confirm or push back before I move to Webset spec design.
 ```
@@ -849,7 +864,7 @@ Recommended 5-criterion structure:
 
 **Source-type diversification (read this carefully — it determines what universe of companies surfaces):**
 
-Every criterion implicitly reads against a particular part of the web. If all 5 criteria read against the same part, Webset converges on whichever companies are loudest in that part — and you get a one-note result. The May 5 V2 Valar build is the example: 4 of 5 criteria read against compliance/regulatory text (data residency, sovereignty, GDPR-style framing), so Webset hunted in regulatory disclosures and brought back European banks. That wasn't a curation failure; it was a criteria authoring failure that compounded downstream.
+Every criterion implicitly reads against a particular part of the web. If all 5 criteria read against the same part, Webset converges on whichever companies are loudest in that part — and you get a one-note result. (Reference build → F9 source-type stacking, where 4 of 5 criteria read regulatory text and Webset returned a heavy European-bank skew.)
 
 The fix is to tag each criterion with the part of the web it reads against, then check that the set spans at least 3 different parts.
 
@@ -1096,7 +1111,7 @@ Wait for user confirmation. Course-correction here is much cheaper than fixing a
 
 **6j — Job discovery via Sumble**
 
-Sumble (sumble.com) is the canonical source for tracking tech company hiring. Use it for the hiring axis instead of generic Webset enrichment or LinkedIn scraping. Charles validated this in V1: "the job postings specifically should route to Sumble." Generic job-board enrichment via Webset was thin and inaccurate in the May 5 build run; Sumble has structured, company-scoped role data with much higher signal-to-noise.
+Sumble (sumble.com) is the canonical source for tracking tech company hiring. Use it for the hiring axis instead of generic Webset enrichment or LinkedIn scraping. Generic job-board enrichment via Webset is thin and inaccurate; Sumble has structured, company-scoped role data with much higher signal-to-noise. For non-tech verticals where Sumble coverage is uneven, work the fallback ladder in Step 5.
 
 Run AFTER Phase 6i curation so you only fetch jobs for the final dashboard list, not the full Webset return.
 
@@ -1125,13 +1140,7 @@ Sumble's URL convention is `https://sumble.com/company/<slug>` (verify this once
 # Extract the active job postings.
 ```
 
-Filter to roles relevant to the founder's pain. Use the Phase 5 hiring keyword regex:
-
-- For inference / AI infra (Valar): ML platform, ML infrastructure, inference, GPU, CUDA, model serving, vLLM, Triton, TensorRT, SRE-for-AI
-- For healthcare workflow: revenue cycle, RCM, prior auth, denial management, claims operations
-- For fintech infra: payments engineering, fraud engineering, compliance engineering
-- For cybersecurity: detection engineering, security platform, security operations
-- For data/analytics infra: data platform, analytics engineering, data infrastructure
+Filter to roles relevant to the founder's pain. Use the hiring keyword regex you generated in Phase 8 step 6 (which derives the keywords from CONTEXT.md's pain language + Phase 5 axis names + antagonist warnings). Keep the regex narrow: each kept role should be a leading indicator that the company is staffing toward the pain the founder solves. Don't keep generic "Software Engineer" postings unless they specifically reference the vertical-relevant skill stack.
 
 **Step 4: Save to disk.**
 
@@ -1164,7 +1173,7 @@ Sumble is the primary source, but it doesn't cover every company. For non-tech e
 4. **Greenhouse / Lever / Ashby boards** if the company uses them. `Exa:web_search_exa` with `boards.greenhouse.io/<slug>` or `jobs.lever.co/<slug>`.
 5. **Last resort: empty.** If steps 1-4 all return zero relevant roles, set `jobs: []` and note `fallback_attempted: ["sumble", "careers", "linkedin", "ats"]` in `sumble-jobs.json` so Phase 7 knows the gap is researched, not skipped.
 
-The hard floor is **≥1 verified job per company in tier='high'**. If a tier='high' company has zero jobs after the full ladder, drop it to tier='med' before Phase 7. The May 5 V2 build had 27 of 30 JOB_LISTINGS empty because Webset's enrichment returned NULL and the skill stopped there; the ladder above is what fills the gap.
+The hard floor is **≥1 verified job per company in tier='high'**. If a tier='high' company has zero jobs after the full ladder, drop it to tier='med' before Phase 7. (Reference build → F7 JOB_LISTINGS empty, where 27 of 30 were empty because the build accepted Webset's NULL enrichment without working the fallback.)
 
 **Why Sumble first:** generic job board enrichment via Webset returns inaccurate role descriptions and stale postings (validated in May 5 test build). Sumble tracks company-specific hiring with structured role/team/location data. Higher signal, lower noise. The fallbacks fire only when Sumble has no record.
 
@@ -1174,35 +1183,16 @@ Run `Lovelace:search_linkedin_profiles` per target company (max 10 results per c
 
 The persona phrasing must come from the founder's vertical and from CONTEXT.md's antagonist warnings, generic "engineering leader" returns garbage.
 
-**Per-vertical persona template patterns:**
+**Building the queries from CONTEXT.md, not from a vertical lookup:**
 
-**Important:** in the May 5 test build, the `keywords` parameter returned fuzzy/noisy matches that weren't even at the target company. The `title` parameter returned much higher-fidelity results. Default to `title` for buyer queries; only fall back to `keywords` if `title` returns thin.
+The buyer / champion / antagonist personas for this build are already in CONTEXT.md (Phase 4 → Buyer Personas & Messaging section, plus the antagonist warnings). Your job is to translate those personas into the right `title:` filter values. Default to `title:` parameter (validated higher-fidelity than `keywords:`); fall back to `keywords:` only if `title:` returns thin.
 
-For **inference / AI infrastructure** founders (Valar-shaped):
-- Buyer: `title: "VP Platform Engineering"` or `title: "Head of ML Infrastructure"` or `title: "Director Cloud Infrastructure"`
-- Champion: `title: "Staff Site Reliability"` or `title: "Principal Engineer ML Platform"`
-- EXCLUDE: ML engineering / applied ML / data science roles unless they're the platform owner
-
-For **healthcare workflow** founders (RCM / prior auth / claims):
-- Buyer: `title: "VP Revenue Cycle"` or `title: "Director Revenue Cycle Management"`
-- Champion: `title: "Director RCM Operations"` or `title: "Head of Denial Management"`
-- EXCLUDE: Pure clinical roles (MDs, RNs) unless they hold an admin operations title
-
-For **fintech infrastructure** founders (payments / banking / compliance):
-- Buyer: `title: "Head of Payments"` or `title: "VP Payments Engineering"`
-- Champion: `title: "Director Fraud Engineering"` or `title: "VP Compliance Engineering"`
-- EXCLUDE: Retail banking / branch management unless explicit infra mandate
-
-For **cybersecurity** founders:
-- Buyer: `title: "CISO"` or `title: "VP Security Engineering"` or `title: "VP Security Operations"`
-- Champion: `title: "Director Detection Engineering"` or `title: "Head of Security Platform"`
-- EXCLUDE: Compliance/audit unless they own platform decisions
-
-For **data / analytics infra** founders:
-- Buyer: `title: "VP Data Engineering"` or `title: "Head of Data Platform"`
-- Champion: `title: "Staff Analytics Engineer"` or `title: "Head of Data Infrastructure"`
-
-If the founder's vertical isn't in the templates above, derive the patterns from CONTEXT.md the same way: who buys (decision-maker title), who champions internally (technical advocate title), who to exclude (founder's named antagonist personas).
+Process:
+1. Read CONTEXT.md's "Buyer Personas & Messaging" section. The buyer is whoever the founder said is most receptive (often a platform / operations / domain leadership role). The champion is the technical advocate who'd own the day-to-day evaluation.
+2. Read CONTEXT.md's antagonist warnings (per Phase 2). These are the personas the founder has explicitly flagged as either threatened by the founder's product (and therefore likely to block) or wrong-fit buyers. Antagonist personas must NOT be queried for as champions; if Lovelace returns one as a top match, drop them or demote to a non-champion `note`-only entry.
+3. Translate the buyer/champion personas into specific senior titles for `title:` queries. For each company, run two queries: one buyer query + one champion query. Generic role labels ("engineering leader") return garbage; use specific senior titles.
+4. Use your knowledge of the vertical to map the founder's persona description to the canonical senior titles in that vertical. If a founder's persona is "platform / infrastructure leader at a cloud-consuming enterprise," the canonical titles are VP/Head Platform Engineering, VP/Head ML Infrastructure, VP Cloud Infrastructure. If the founder's persona is "VP of Revenue Cycle at a hospital system," the canonical titles are VP/Director Revenue Cycle, Director RCM Operations. The model knows the vertical's title taxonomy; use it.
+5. If you genuinely don't know the canonical senior titles for a vertical, run one Exa search ("[vertical] VP titles" or "[founder's persona description] LinkedIn") to discover them before firing Lovelace queries. Cheaper than firing a noisy Lovelace query.
 
 **Tool signature:**
 
@@ -1260,7 +1250,7 @@ If specific enrichments are blank for many companies (sparse data):
 
 **6m — Targeted research for founder-named picks not surfaced by Webset**
 
-Founder-named accounts (signed design partners, named pipeline, ICP picks from a CSV) often don't surface in Webset because Webset is a *discovery* tool — it finds new ICP-fit companies, it doesn't validate the founder's existing list. The May 5 V2 build had 18 founder-named picks; Webset surfaced only 2 (Capital One, Bank of America). The other 16 went into Phase 7 with thin sourcing because the build skipped this step.
+Founder-named accounts (signed design partners, named pipeline, ICP picks from a CSV) often don't surface in Webset because Webset is a *discovery* tool — it finds new ICP-fit companies, it doesn't validate the founder's existing list. (Reference build → F6 founder-pick research gap, where 16 of 18 founder-named picks went into Phase 7 with thin sourcing because per-company directed research was skipped.)
 
 **Don't skip this phase for founder-named accounts.** They are the highest-stakes entries in the dashboard — these are the companies the founder's pitch hinges on, and shallow entries here are the most-noticed quality gap.
 
@@ -1375,7 +1365,7 @@ cp template/data.js data.js
    - Aggregate warm-contact counts as descriptive attributes ("Primary has multiple warm contacts here") — but framed as attribute, not strategy
    - Founder relationship status if it's structural ("signed design partner", "named pipeline pick")
 
-   The May 5 V2 Capital One thesis hinged on Prem Natarajan, John Morgan, Vivek Gupta, and Alex by name. If any of those four leaves their current role tomorrow, the thesis breaks. V1's Capital One thesis described the same company in durable terms — culture, technology fit, business need, contact-count-as-attribute — and would survive any personnel rotation.
+   (Reference build → F4 personnel-fragile thesis. V1's Capital One thesis described the same company in durable terms — culture, technology fit, business need, contact-count-as-attribute — and would survive personnel rotation.)
 
 8. **Write `tags` 3-5 chips with mixed colors** (`Valar`/`brand` for relationship, `stack` for technical/constraint, `hw` for hard constraint, `hiring` for hiring signal, `neutral` for factual). Tooltips required if the tag is non-obvious. Hiring tags prefixed with the role being hired (e.g., `'Hiring: ML Platform'` for inference founders, `'Hiring: RCM'` for healthcare workflow, `'Hiring: Payments'` for fintech). **Banned tag values** (do not use): `Stage-1 ICP`, `Stage-2 ICP`, `Stage 1`, `Stage 2`, `Pipeline`, `Mid-Market`, `Enterprise`, `Target`, `ICP`, `In ICP`, or any other segment-classification meta-tag. Tags must reference product names, technical stack, constraints, relationship status, or hiring signals — never segment classification (the segment is already shown by the tab). See Section 9.4.
 
@@ -1384,7 +1374,7 @@ cp template/data.js data.js
 10. **Populate `JOB_LISTINGS`** from `sumble-jobs.json` (Phase 6j). Each company's `jobs[]` array maps to JOB_LISTINGS entries with title, team, location, URL. If a company has empty jobs in Sumble data, leave its JOB_LISTINGS entry empty rather than backfilling with weaker data.
 
 11. **Populate `COMPANY_SOURCES`** from `webset-response.json`, `founder-pick-research.json` (Phase 6m results for founder-named picks), AND targeted web fetches. Source list quality is what readers use to judge the rest of the dashboard. Counts and rules:
-    - **Target: 6 sources per company** (V1 averages 6; the May 5 V2 Celonis shipped 3 — don't repeat that).
+    - **Target: 6 sources per company** (V1 averages 6; reference build → F2 source thinness).
     - **Hard floor: 4 sources.** Below 4 is unacceptable. Either fetch the missing tier(s) yourself (SEC filing for public companies, engineering blog posts for tech-forward companies), drop the company's tier from `high` to `med`, or replace the company in the curated 10.
     - **4-5 sources is acceptable but try once more to reach 6** before moving on, especially if Tier 1 or Tier 2 sources are missing.
     - **For public companies: ≥1 SEC filing.** 10-K, 10-Q, S-1, DEF 14A, or 8-K from sec.gov. If the company is publicly traded and your Webset enrichment didn't surface a 10-K, fetch one yourself: `Exa:web_search_exa` with query `"<company> 10-K SEC EDGAR"` and add the top result.
@@ -1396,11 +1386,13 @@ cp template/data.js data.js
     - **Budget guardrail.** Each company should require ≤3 extra Exa fetches beyond the Webset baseline. If a company would need 5+ extra fetches to reach 6 quality sources, that's a signal the research case is thin — drop its tier or replace it.
     - See TEMPLATE_GUIDE Section 9.12 for the full source quality hierarchy.
 
-12. **Populate `RESIDENCY_MAP`** from `webset-response.json` and `founder-pick-research.json`. Each entry pairs a company with a one-sentence residency/sensitivity reason that quotes the underlying source language where possible.
+12. **Populate `RESIDENCY_MAP`** (or whatever the founder-specific axis-2 field is named, per Phase 5) from `webset-response.json` and `founder-pick-research.json`. Each entry pairs a company with a one-sentence reason that quotes the underlying source language where possible.
 
-    **Score-5 evidence requirement (per Phase 5 rubric).** Before assigning `data_residency: 5` to any company, the `residency_reason` must include a cited tried-and-blocked vendor (e.g., "Director of Architecture confirmed Fireworks, Together, Baseten, and Modal all evaluated; none reached production due to PHI data-handling requirements — source: <url>"). If no tried-and-blocked evidence is in `webset-response.json` (Inference Blocker Evidence enrichment) or `founder-pick-research.json` (5th query results), cap the score at 4 even if the regulatory posture would justify a 5. The May 5 V2 build assigned 5s based on regulation alone, which collapsed UHG (the actual wow exemplar) into a pool of 25 indistinguishable 4s and 5s. The wow axis only earns its weight when the top score requires the wow evidence.
+    **Score-5 evidence requirement (per Phase 5 rubric).** Before assigning a 5 on any founder-specific axis, the reason field must include cited evidence in **the wow signal's evidence shape** (per CONTEXT.md's "Wow Signal" section). The evidence shape is defined by what the wow signal documents — for inference founders this is a tried-and-blocked vendor citation; for industrials predictive-maintenance founders this is a documented legacy-system reference (e.g., "10-K cites $X annual unplanned-downtime cost from end-of-life DCS"); for biotech founders this is a cited regulatory milestone (e.g., "FDA submission pending on a single-vendor pipeline with named alternative pending validation"); for fintech founders this might be a CFO earnings-call quote about a named compliance gap. Use CONTEXT.md to determine the right shape for this build.
 
-13. **Cite via `ROW_SOURCES`** for every numeric or specific claim. Webset returns sources inline within text fields (pattern: `fact text | URL / fact text | URL`); when reading any enrichment text into a `sections` row, scan for URLs (regex `https?://[^\s\)]+`), extract them into ROW_SOURCES entries, and use the cleaned text (without inline URLs) as the row value. Density target: every Profile or Inference Footprint row containing a number, named product, regulatory standard, or other verifiable specific should have a `ROW_SOURCES` entry. The May 5 V2 build had `src` tags on only 2 of ~12 fields per company; V1 averages 5 of ~10 — close that gap by extracting URLs as a discipline, not an afterthought. Empty entries are fine; wrong entries are worse than nothing. See Section 9.9.
+    If no wow-shape evidence is in `webset-response.json` or `founder-pick-research.json`, cap the score at 4 even if the underlying posture would justify a 5. The wow axis only earns its weight when the top score requires the wow evidence. (Reference build → F3 score inflation.)
+
+13. **Cite via `ROW_SOURCES`** for every numeric or specific claim. Webset returns sources inline within text fields (pattern: `fact text | URL / fact text | URL`); when reading any enrichment text into a `sections` row, scan for URLs (regex `https?://[^\s\)]+`), extract them into ROW_SOURCES entries, and use the cleaned text (without inline URLs) as the row value. Density target: every Profile or [vertical-named] Footprint row containing a number, named product, regulatory standard, or other verifiable specific should have a `ROW_SOURCES` entry. V1 averages 5 of ~10 cited rows per company; aim there. (Reference build → F8 citation density gap.) Empty entries are fine; wrong entries are worse than nothing. See Section 9.9.
 
 **Self-check after each company entry, before moving on:**
 
@@ -1412,10 +1404,10 @@ cp template/data.js data.js
 - **No banned tag values.** Search the `tags[]` array for "Stage-1 ICP", "Stage-2 ICP", "Pipeline", "Target", "ICP". If any are present, replace with product names, technical stack, constraints, or relationship status.
 - **GTM thesis swap test.** Strip the company name from the `gtm_thesis`. Could you swap any other company's name in and have it still make sense? If yes, rewrite — the thesis isn't specific enough.
 - **GTM thesis durability test.** Read the `gtm_thesis` and ask: if every named individual in this thesis left their job tomorrow, would the thesis still hold? Specifically scan for: named buyers ("John Morgan"), named champions ("Vivek Gupta"), named warm-intro paths ("via Alex"), comparative claims tied to personnel ("highest-warmth account"), specific role+name combinations ("EVP Chief Scientist Prem Natarajan"). If any are present, move them to CONTACT_MAP and replace with role types in the thesis. Buyer/Champion in the thesis are personas ("Platform Engineering leadership"), not humans.
-- **Antagonist persona consistency check.** If the gtm_thesis ends with `**NOT [persona]**` (e.g., **NOT** ML engineering, **NOT** security/governance), grep the company's CONTACT_MAP entries for matching persona keywords. The titles flagged in NOT must NOT appear as recommended champions. Worked example: gtm_thesis says **NOT** Technology Governance team → CONTACT_MAP cannot list a contact whose title contains "Technology Governance" as `type: 'business'` champion. If a match exists, either drop the contact, demote them to a non-champion `note`-only entry, or rewrite the antagonist callout. The May 5 V2 Mastercard entry listed Kiran Jayant (VP Technology Governance) AND said **NOT** Technology Governance — the lint catches that contradiction.
+- **Antagonist persona consistency check.** If the gtm_thesis ends with `**NOT [persona]**` (e.g., **NOT** ML engineering, **NOT** security/governance, **NOT** controls engineering, **NOT** clinical operations — whatever persona this build's antagonist warning names), grep the company's CONTACT_MAP entries for matching persona keywords. The titles flagged in NOT must NOT appear as recommended champions. Worked example: gtm_thesis says **NOT** Technology Governance team → CONTACT_MAP cannot list a contact whose title contains "Technology Governance" as `type: 'business'` champion. If a match exists, drop the contact, demote them to a non-champion `note`-only entry, or rewrite the antagonist callout. (Reference build → F5 antagonist contradiction.)
 - **Em dashes ≤ 1 per entry.** Count em dashes across the entry (subtitle, overview, gtm_thesis, all section values). Target: zero or one. If higher, rephrase using commas, periods, or parentheses.
 - **Source citation density.** Count cited rows in Profile + Inference Footprint. V1 averages 5 of ~10. If your entry has fewer than 4 of 9 cited, you missed URL extraction in step 13 — go back and parse the Webset enrichment text more carefully.
-- **COMPANY_SOURCES count.** Open the entry's source list. Count it. Target is 6 (V1 average). Hard floor is 4 — under 4 means escalate (extra Exa fetches for missing tier, or drop the company's tier, or swap company). 4-5 is acceptable if Tier 1 / Tier 2 quality is present, but try once more to reach 6 first. The May 5 V2 Celonis shipped 3 sources (BusinessWire + TechCrunch + Greenhouse) — that's the failure mode this check prevents.
+- **COMPANY_SOURCES count.** Open the entry's source list. Count it. Target is 6 (V1 average). Hard floor is 4 — under 4 means escalate (extra Exa fetches for missing tier, or drop the company's tier, or swap company). 4-5 is acceptable if Tier 1 / Tier 2 quality is present, but try once more to reach 6 first. (Reference build → F2 source thinness.)
 - **No PR-aggregator-only sourcing.** If COMPANY_SOURCES is anchored on BusinessWire / PRNewswire / GlobeNewswire press releases without a Tier 1 (SEC) or Tier 2 (engineering blog) source alongside, the source list is too weak. Find the trade-press follow-up or the underlying primary record.
 - **Source titles describe content.** Each entry in COMPANY_SOURCES should follow `[Outlet] — [Specific topic]` format. Bare outlet names ("Datadog Blog") or bare article titles ("Celonis AI copilot") fail the test. See TEMPLATE_GUIDE Section 9.12.
 - **Generic test.** If you couldn't tell the entry apart from another company in the same segment, the patterns aren't landing.
@@ -1454,7 +1446,17 @@ Now edit `index.html` directly. Walk this checklist:
 3. In `<script>`, find `buildScoreTips()`, it has hardcoded label strings ("Inference Pain", "Data Residency", "Buying Trigger", "Hiring"). The first two are Valar-specific; replace with your axis names from Phase 5. The latter two ("Buying Trigger" → conceptually "Opportunity Score" axis, and "Hiring") are mandatory axes, keep their function but rename labels if you want different display names.
 4. In `dotsRow()` call sites (search for `dotsRow('Inference Pain'`, `dotsRow('Data Residency'`), update labels to match Phase 5 axis names. There are typically ~4 of these calls per render.
 5. Update the `labels` object inside the detail-view tooltip code (search for `labels = {pain:'Inference Pain'...}` to update those references).
-6. In `computeJobSignal()`, replace the hiring keyword regex per Phase 5 vertical-specific keywords.
+6. In `computeJobSignal()`, replace the hiring keyword regex with vertical-appropriate keywords. Generate the regex from: (a) CONTEXT.md's ICP Qualifier and pain language, (b) Phase 5 axis names, (c) the antagonist warnings (exclude antagonist-role keywords; for an inference founder don't include "data scientist" because Wiggin flagged ML eng as antagonist; for an industrials founder don't include "controls engineer" if the founder named them as threatened by external automation vendors). The regex should be the leading-indicator job titles + skills that signal a company is staffing toward the pain the founder solves. Test on 3 known-prospect careers pages before locking it in — the regex should match at the right companies and miss at obviously-wrong-fit companies.
+
+   Examples by vertical (use as inspiration, not template):
+   - Inference / AI infra: `/inference|llm |triton|tensorrt|sglang|vllm|model serving|ml platform|gen[ ]?ai platform|kernel/i`
+   - Industrials predictive-maintenance: `/predictive maintenance|condition monitoring|industrial ai|reliability engineering|asset performance|opc-ua|industrial iot/i`
+   - Healthcare RCM: `/revenue cycle|denial management|prior authorization|claims operations|coding|RCM/i`
+   - Fintech infra: `/payments engineering|fraud engineering|compliance engineering|banking platform|payment rail/i`
+   - Cybersecurity: `/detection engineering|security platform|security operations|threat detection|SIEM|SOC/i`
+   - Biotech / medtech: `/clinical operations|regulatory affairs|bioinformatics|process development|GMP|computational biology/i`
+   - Consumer / retail: `/personalization|merchandising|recommendation systems|search relevance|consumer data platform/i`
+   The model knows the title taxonomy for any given vertical — derive the regex rather than reaching for a template.
 7. Update tab labels in `<nav class="page-tabs">` if your segment IDs differ from default.
 8. Sanity check `.tag.brand` CSS class is intact. All `c: 'brand'` values in your data.js render with founder accent.
 
@@ -1592,10 +1594,49 @@ Closing message to user:
 - **Don't fight the async.** If the Webset takes 8 minutes, take 8 minutes. Don't try to populate data.js with placeholders during the wait, you'll do double work.
 - **Founder voice in `gtm_thesis` is the leverage point on copy.** Splice verbatim quotes from `inputs/` or CONTEXT.md.
 - **The wow signal should be visible from any angle.** Surface it in `gtm_thesis`, in `signals[]`, and in tags.
-- **The most common second failure mode is over-anchoring on Valar.** If your output sounds like Valar with names changed, you've under-delivered. Vertical-specific signal axes (beyond the mandatory Hiring + Opportunity) are required, not optional.
+- **The most common second failure mode is over-anchoring on the reference build.** The skill carries Valar/inference examples to anchor patterns; do not let those examples constrain your axes, persona templates, or wow shape. If the output sounds like the reference build with names changed, you've under-delivered. Vertical-specific signal axes (beyond the mandatory Hiring + Opportunity) are required, not optional, and they should come from THIS founder's CONTEXT.md, not from the reference build.
 - **Source every numeric claim.** Empty `ROW_SOURCES` is fine; wrong `ROW_SOURCES` is worse than nothing. Webset returns source URLs inline within text fields (pattern: `fact text | URL / fact text | URL`); parse these out into ROW_SOURCES rather than discarding them.
-- **Don't fabricate data the Webset didn't return.** Mark fields as "needs verification" in `BUILD_NOTES.md` instead of inventing numbers.
+- **Don't fabricate data the Webset didn't return.** If a row's value isn't externally derivable, omit the row entirely or compute a defensible range with a stated method. Never ship "needs verification" / "TBD" / "?" as a row value (see Output Style Rules #7). Flag any thin areas in `BUILD_NOTES.md` so the founder knows what to follow up on.
 - **Watch for 402 errors mid-build.** If credits run out partway through, finish what you can, mark the rest as needing manual fill, and flag in BUILD_NOTES.md. Don't silently skip companies.
 - **The 0–5 axis math is generic, leave it alone.** Only the labels and axis count change between projects.
 - **Save the Webset ID and webset-spec.json.** Future iterations can refresh data without rebuilding the query, and Exa monitors can keep the list fresh on a schedule.
-- **Reference the gold standard:** `github.com/alexg207/valar-fdi`. When in doubt about tone or density, that's the bar.
+- **Reference the gold standard:** `github.com/alexg207/valar-fdi` for tone/density/specificity. The Valar V1 build is the inference-vertical reference. For non-inference verticals, V1's tone and rigor still apply; only the vertical-specific patterns change.
+
+---
+
+## Reference build: Valar V2 (May 5 2026)
+
+The skill body cites failure modes from a single end-to-end test build (Valar, inference vertical, May 5 2026 — `github.com/alexg207/valar-v2-test-fdi`). Those examples are pedagogical; **none of them describe a constraint on the build you are running now**. They exist so you can recognize the failure mode when it shows up in your own output, regardless of vertical.
+
+### Failure modes catalogued
+
+**F1 — Placeholder leak.** May 5 V2 shipped `Estimated Spend: "$3-8M annual inference (needs verification)"` as a row value. The placeholder reads as junior research. Output Style Rule #7 prevents recurrence.
+
+**F2 — Source thinness.** May 5 V2 Celonis card shipped 3 sources (BusinessWire press release + TechCrunch + Greenhouse job board) — under the 4-source hard floor and anchored on a PR aggregator. Output Style Rule #12 prevents recurrence.
+
+**F3 — Wow-axis score inflation.** May 5 V2 assigned residency scores of 4 or 5 to nearly every regulated-vertical company based on regulation alone. UHG (the actual wow exemplar with cited "tried Fireworks/Together/Baseten/Modal — none reached production due to security") got drowned in a pool of 25 indistinguishable 4s and 5s. Phase 5 axis-4 rubric and Phase 7 step 12 prevent recurrence by requiring score-5 evidence in the wow shape.
+
+**F4 — Personnel-fragile gtm_thesis.** May 5 V2 Capital One thesis named John Morgan, Vivek Gupta, Prem Natarajan, and Alex by name and called Capital One "the highest-warmth Stage-2 account." Every claim breaks if any of those four rotate roles. Output Style Rule #13 (personnel-durable thesis) and Phase 7 self-check (durability test) prevent recurrence.
+
+**F5 — Antagonist contradiction.** May 5 V2 Mastercard entry listed Kiran Jayant (VP Technology Governance) as a champion AND said `**NOT** Technology Governance` in the gtm_thesis. Phase 7 self-check (antagonist consistency lint) prevents recurrence.
+
+**F6 — Founder-pick research gap.** May 5 V2 had 18 founder-named picks; Webset surfaced only 2 (Capital One, Bank of America). The other 16 went into Phase 7 with thin sourcing because the build skipped per-company directed research for accounts not in Webset. Phase 6m (founder-pick research path) prevents recurrence.
+
+**F7 — JOB_LISTINGS empty.** May 5 V2 had 27 of 30 JOB_LISTINGS empty because Webset's job-board enrichment returned NULL and the build stopped there instead of working a fallback ladder. Phase 6j Step 5 (Sumble + careers + LinkedIn + ATS fallback) prevents recurrence.
+
+**F8 — ROW_SOURCES citation density gap.** May 5 V2 had `src` tags on only 2 of ~12 fields per company; V1 averages 5 of ~10. Phase 7 step 13 (URL extraction discipline) and Phase 7 self-check (citation density count) prevent recurrence.
+
+**F9 — Source-type stacking.** May 5 V2 Webset criteria had 4 of 5 reading against compliance/regulatory text (data residency, sovereignty, GDPR-style framing). Webset hunted in regulatory disclosures and brought back European banks loudest in that corpus. Phase 6e source-type tagging (require ≥3 distinct content tags across criteria) prevents recurrence.
+
+**F10 — Estimated Spend not externally derivable.** May 5 V2 estimated annualized inference spend across 30 companies, all flagged "needs verification" because no public source cites this directly per company. The enrichment ask was structurally wrong. Pattern: when an enrichment field's evidence isn't externally available for the population you're scoring, drop the field or replace with a defensible 4-bucket enum, not "needs verification" filler.
+
+### What the reference build got right
+
+- The 4-axis structure (Hiring + Opportunity + Inference Pain + Data Residency) was correct for the inference vertical and surfaced the wow exemplar (UHG) — the failure was rubric inflation, not axis selection.
+- The Phase 6f checkpoint caught a 3.3% pass-rate criterion before the Webset fired — saved $5 and 10 minutes by re-firing with softened criteria.
+- Founder voice splicing in gtm_thesis (verbatim Tom Amsterdam quotes from CONTEXT.md) materially improved the dashboard's tone over V1's hand-build.
+- The interaction model and per-phase Git commits made the build auditable.
+
+### Pattern: "Valar with names changed"
+
+If your output for a non-inference founder reads like Valar with names changed — the same axis labels, the same persona descriptions, the same wow-evidence shape — you've under-delivered. The reference-build patterns are scaffolding for the discipline, not the content.
