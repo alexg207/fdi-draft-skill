@@ -177,7 +177,7 @@ The skill is designed to run mostly in the background. Don't interrupt the user 
 
 A "minor" decision is one where:
 - The cost of being wrong is low and reversible (Phase 1 absorbed summary, Phase 3 extraction check, Phase 6h Webset summary)
-- Best practice is well-documented (the standard 4-axis Valar pattern when the founder is in the inference vertical, the standard 3-segment structure, the standard hiring keyword regex when the vertical is in the per-vertical templates)
+- Best practice is well-documented (the standard 4-axis Hiring + Opportunity + 2 founder-specific structure, the standard 3-segment Pipeline / Mid-Market / Enterprise scaffold, the standard locked field sets per Section, the source quality hierarchy)
 - The user can intervene afterward if they disagree (curation can be reopened; data.js can be rewritten per-company)
 
 **Default to auto-proceed on minor decisions.** Post a brief status update (1-3 lines, what you decided + why) and continue. Don't pause. The user can interrupt at any time.
@@ -192,7 +192,7 @@ A "minor" decision is one where:
 | 2 | Gap questions | **Stop, one question at a time.** Each missing critical signal (lookalikes, exclusions, wow signal, founder voice quotes) is a separate question. Skip themes that are already answered in `inputs/`. |
 | 3 | Extraction check | **Auto-proceed**. Post the checklist as visibility, continue to Phase 4. |
 | 4 | CONTEXT.md write | **Auto-proceed.** Write, commit, continue. |
-| 5 | Signal axes | **Auto-proceed if standard pattern fits** (mandatory Hiring + Opportunity + 2 founder-specific axes for an in-template vertical). Stop only if the founder's vertical isn't in the per-vertical templates and you have to invent axes from scratch. |
+| 5 | Signal axes | **Auto-proceed if the standard 4-axis pattern fits** (mandatory Hiring + Opportunity + 2 founder-specific axes derived from CONTEXT.md). Stop only if you need to deviate from the 4-axis structure (e.g., 5 or 6 axes, or fewer than 4) or the founder-specific axes can't be cleanly derived from CONTEXT.md. |
 | 6a-e | Webset spec drafting | **Auto-proceed** through 6a-6e. The spec assembles deterministically from CONTEXT.md + Phase 5. |
 | 6f | Webset pre-fire checkpoint | **STOP.** Paid, async, hard to undo. Always wait for explicit user go-ahead. |
 | 6g | Submit + poll | **Auto-proceed.** |
@@ -756,9 +756,9 @@ STRUCTURAL DECISIONS:
 Confirm or push back before I move to Webset spec design.
 ```
 
-**Auto-proceed if the standard pattern fits.** When the founder's vertical is in the per-vertical templates above (inference, healthcare workflow, fintech infra, cybersecurity, data infra), the 4-axis structure (Hiring + Opportunity + 2 founder-specific) and the standard 3-segment scaffold land cleanly. Post the axis plan as visibility and move to Phase 6.
+**Auto-proceed if the standard 4-axis pattern fits cleanly.** Default structure is Hiring + Opportunity + 2 founder-specific axes (derived from CONTEXT.md), with the standard 3-segment scaffold (Pipeline / Mid-Market / Enterprise). When the 2 founder-specific axes drop out of CONTEXT.md's ICP Qualifier + lookalike anchors + wow signal without ambiguity, post the axis plan as visibility and move to Phase 6.
 
-**Stop and ask** only if the founder's vertical isn't in the per-vertical templates and you have to invent founder-specific axes from scratch — that's a significant decision worth a checkpoint.
+**Stop and ask** if you need to deviate from the 4-axis structure (e.g., 5 or 6 axes for unusually multi-dimensional ICPs), or if the founder-specific axes can't be cleanly derived from CONTEXT.md and require user judgment — that's a significant decision worth a checkpoint.
 
 ### Phase 6: Build and run the Webset
 
