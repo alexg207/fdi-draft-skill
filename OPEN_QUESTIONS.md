@@ -2,7 +2,23 @@
 
 Things that need real-world testing, founder input, or user judgment to resolve. Not skill edits — design questions and validation gaps.
 
-Last updated: post-Plural-FDI-2026-05-06 audit (skill polish pass: word caps, em-dash hardening, tier-distribution enforcement, JSON self-check emission, early-cancel triggers, scale-down rule).
+Last updated: post-Lantern-FDI-2026-05-06 audit (5 patches: Phase 6j Step 0 Webset-mining, Phase 0 credit-pool preflight, Phase 7 axis-uniformity self-check, gtm_thesis durability regex, F11 entry).
+
+---
+
+## Lantern FDI 2026-05-06 — validation results
+
+Third end-to-end run of the skill (Valar V2 May 5 → Plural May 6 → Lantern May 6). Lantern is **AI purchasing agents for wholesale distributors** — first distribution-vertical build (HVAC / plumbing / electrical / industrial supply mid-market). Validation results vs prior Q's:
+
+- **Q1 (vertical generalization)** — **further validated**. Section 2 cleanly relabeled to "Buy-Side Footprint", axes "Operational Pain" + "ERP Fit", HIRING_KEYWORD_REGEX scoped to Buyer / Purchasing Manager / Demand Planner titles. Webset returned 15 ICP-correct distributors with zero vendor false-positives. ICP correctness confirmed by user-side SDR review.
+
+- **Q2 (subagent rule decay)** — **mostly held**. Em-dash count averaged 0.7 per company (vs 28.7 in Plural and 16.6 in Valar V1) — strongest stylistic improvement to date. Word caps held under ceilings. BUT 4 of 10 entries violated Pain Points "lead with financial consequence" rule, and 2 of 10 entries violated `gtm_thesis` durability (named "Brian Schlise", "Marco Schooley" — target-company execs). Subjective self-checks weren't enough; objective regex self-check now codified for durability (Pain Points framing held subjective per user judgment).
+
+- **NEW Q14: Hiring axis flatline cascade** — **F11 catalogued**. Basic-Exa MCP hit 402 mid-build; Phase 6j skipped entirely (Sumble + careers + LinkedIn + ATS fallback ladder all depend on basic Exa). All 10 JOB_LISTINGS empty → `computeJobSignal()` default returned uniform 1 across the dashboard. Three preventions now in skill: Phase 0 credit-pool preflight, Phase 6j Step 0 (mine Webset role-evidence first), Phase 7 axis-uniformity self-check.
+
+- **NEW Q15: credit-pool distinction not surfaced**. Websets MCP and basic Exa MCP share the dashboard but bill on separate pools. Either can hit 402 while the other works. Now documented in Prerequisites + probed in Phase 0 preflight.
+
+- **NEW Q16: Profile field set leakage to non-tech-forward verticals**. Cloud Provider + AI Maturity rows carry weak signal for distribution / industrials / healthcare-delivery / manufacturing builds. User decision (this iteration): keep universal field set; defer vertical-aware Profile presets. Re-open if observed in subsequent non-tech build.
 
 ---
 
@@ -78,7 +94,7 @@ Variables to track on the next end-to-end run (whether Valar refresh or new foun
 - **JOB_LISTINGS coverage**: target ≥9 of 10 companies populated with ≥1 verified role.
 - **gtm_thesis name-strip survival rate**: spot-check 3 entries; target 3 of 3 surviving the swap test.
 - **Score distribution on founder-specific axes**: should be a real spread 0-5, not all 4-5. If everything is 4 or 5, F3 score-inflation regression.
-- **`[SECTION_2_LABEL]` consistency**: literal "Inference Footprint" appearing in a non-inference build = F11 regression.
+- **`[SECTION_2_LABEL]` consistency**: literal "Inference Footprint" appearing in a non-inference build = section-2-label-leakage regression (Output Style Rule #14 violation).
 - **Subagent vs main-thread context split**: did Phase 7 actually run in a subagent, or did the main thread try to load all the JSON?
 - **End-to-end wall clock**: target ~30-50 min. >90 min suggests rule application is blocking flow.
 - **End-to-end cost**: target $7-15. >$25 suggests excessive Exa fetches.
@@ -163,7 +179,7 @@ Track per build:
 - JOB_LISTINGS coverage (target ≥9/10)
 - gtm_thesis name-strip survival (target 3/3 spot-checks)
 - Score distribution on founder-specific axes (real spread 0-5, not all 4-5)
-- `[SECTION_2_LABEL]` consistency (literal "Inference Footprint" appearing in non-inference build = F11 regression)
+- `[SECTION_2_LABEL]` consistency (literal "Inference Footprint" appearing in non-inference build = section-2-label-leakage regression, Output Style Rule #14 violation)
 - Phase 7 subagent vs main-thread context split (did Phase 7 actually delegate?)
 - End-to-end wall clock (target 30-50 min)
 - End-to-end cost (target $7-15)

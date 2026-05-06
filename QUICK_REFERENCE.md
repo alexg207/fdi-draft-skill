@@ -33,6 +33,7 @@ Rules apply to every shipped artifact (CONTEXT.md, data.js, index.html, BUILD_NO
 
 | Phase | Mode | If | Then |
 |---|---|---|---|
+| 0 preflight | **STOP** | Either Exa credit pool returns 402 | Halt, surface to user with `dashboard.exa.ai/api-keys` link |
 | 0a-b | **STOP** | Setup questions | One question per turn, sequential |
 | 0c | Auto | Inputs minimum present | Post inventory + continue |
 | 0c | STOP | Required input missing | Ask once |
@@ -77,7 +78,7 @@ Produce these before leaving Phase 5; they're consumed by Phases 6, 7, 8.
 
 ---
 
-## Phase 7 Self-Check (13 items, run after every company entry)
+## Phase 7 Self-Check (15 items, run after every company entry)
 
 | # | Check | Pass condition |
 |---|---|---|
@@ -89,11 +90,20 @@ Produce these before leaving Phase 5; they're consumed by Phases 6, 7, 8.
 | 6 | No banned tag values | grep `tags[]` for "Stage-1 ICP", "Pipeline", "Target", "ICP". Zero matches. |
 | 7 | gtm_thesis swap test | Strip company name. Could you swap any other in? If yes, rewrite. |
 | 8 | gtm_thesis durability test | No named individuals. No "highest-warmth account" comparative claims. Buyer/Champion are role types. |
-| 9 | Antagonist consistency | If gtm_thesis says **NOT [persona]**, CONTACT_MAP can't list that persona as champion. |
-| 10 | Em dashes ≤ 1 | Count em dashes across subtitle, overview, gtm_thesis, all sections. |
-| 11 | ROW_SOURCES citation density | ≥4 of 9 rows cited (V1 averages 5/10). |
-| 12 | COMPANY_SOURCES count | Target 6, hard floor 4. ≥1 Tier-1 + ≥2 Tier-2 + ≤1 Tier-3. |
-| 13 | Source titles describe content | Format: `[Outlet] — [Specific topic]`. Bare outlet names fail. |
+| 9 | gtm_thesis durability regex | `\b[A-Z][a-z]+ [A-Z][a-z]+\b` matches → must be in PRIMARY_TEAM or recognized firm/fund, else fail (catches target-company exec names like "Brian Schlise"). |
+| 10 | Antagonist consistency | If gtm_thesis says **NOT [persona]**, CONTACT_MAP can't list that persona as champion. |
+| 11 | Em dashes ≤ 3 | Count em dashes across subtitle, overview, gtm_thesis, all sections. |
+| 12 | ROW_SOURCES citation density | ≥4 of 9 rows cited (V1 averages 5/10). |
+| 13 | COMPANY_SOURCES count | Target 6, hard floor 4. ≥1 Tier-1 + ≥2 Tier-2 + ≤1 Tier-3. |
+| 14 | Source titles describe content | Format: `[Outlet] — [Specific topic]`. Bare outlet names fail. |
+| 15 | Word caps | overview ≤80, gtm_thesis ≤75, opp_reason ≤50, distress_reason ≤60, residency_reason ≤90. |
+
+**Global checks (run once after all 10 entries, before commit):**
+
+| # | Check | Pass condition |
+|---|---|---|
+| G1 | Tier distribution | At most 7 of 10 `'high'`; at least 1 `'low'`. |
+| G2 | Axis uniformity | No single axis (signal_score, competitive_distress, data_residency, hiring sub-score) has ≥80% identical values across the 10. Catches F11-shape flatlines. |
 
 ---
 
@@ -111,6 +121,7 @@ Produce these before leaving Phase 5; they're consumed by Phases 6, 7, 8.
 | F8 | Citation density gap (2 of 12 cited vs V1's 5 of 10) | Phase 7 step 13 URL extraction discipline |
 | F9 | Source-type stacking (4 of 5 criteria read regulatory text → European-bank skew) | Phase 6e source-type tagging requires ≥3 distinct tags |
 | F10 | Field structurally not externally derivable (annualized inference spend) | Either drop the field or define a defensible 4-bucket enum |
+| F11 | Hiring axis flatline from JOB_LISTINGS empty cascade (Lantern May 6: basic-Exa 402 → Phase 6j skipped → uniform-1 Hiring) | Phase 0 preflight credit-pool probe + Phase 6j Step 0 (mine Webset role-evidence first) + Phase 7 axis-uniformity self-check (G2) |
 
 ---
 

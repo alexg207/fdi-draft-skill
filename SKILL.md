@@ -23,7 +23,8 @@ The output is a 90% solution. You do the last 10%, handpicking the 5 companies t
   - **Exa Websets MCP**, required. Different from the basic Exa search MCP. Personal API key configured at `dashboard.exa.ai/api-keys`. Make sure the API key is on the team that has credits.
   - **Lovelace MCP**, required for contact discovery. Provides `search_linkedin_profiles`.
   - **Granola MCP**, useful if founder transcripts come from Granola; the skill can query directly instead of requiring exports.
-  - **Basic Exa MCP**, useful as a fallback for `web_search_exa` and `web_fetch_exa` calls during company-list curation.
+  - **Basic Exa MCP**, required as a fallback for `web_search_exa` and `web_fetch_exa` calls during company-list curation, Sumble fetching (Phase 6j), and founder-pick research (Phase 6m).
+- **CRITICAL: Websets MCP and basic Exa MCP are on SEPARATE credit pools.** They share the dashboard at `dashboard.exa.ai/api-keys` but bill independently. Websets credits cover the `mcp__websets__*` calls (search + enrichment); basic-Exa credits cover `web_search_exa` + `web_fetch_exa`. Either pool can hit a 402 while the other still works. **Both must be funded before the build starts.** Phase 0 will preflight both — see Phase 0 step "Verify both credit pools" below.
 - **Working directory structure**, see "Working Directory Layout" below. The skill expects raw founder docs in `inputs/`.
 - **Git installed**, the skill clones the template repo and initializes the output repo.
 - **`gh` CLI installed and authenticated** (recommended), `brew install gh && gh auth login`. With `gh` set up, the skill creates the GitHub repo for each founder automatically. Without it, the skill creates the local repo only and you create the GitHub remote by hand later.
@@ -252,6 +253,19 @@ Phase 0 has two paths depending on where the user activates the skill:
 
 - **Path A, Existing build (`pwd` is already inside `~/fdi/<slug>/`):** skip to 0c. The user is iterating on a build that already exists; don't re-create anything.
 - **Path B, New build (`pwd` is `~`, `~/fdi/`, or anywhere else):** run the kickoff flow below to set up a new founder repo from scratch.
+
+**Step 0 — preflight: verify both Exa credit pools BEFORE Phase 0a.** Websets and basic Exa share the same dashboard but bill on separate pools (see Prerequisites). A build that runs out of basic-Exa credits mid-flight cannot complete Phase 6j (Sumble fetches) or Phase 6m (founder-pick research) and will produce uniform-1 Hiring scores (the F11 cascade). Catch this before kickoff.
+
+```bash
+# Probe Websets MCP — a single list call confirms credits + auth
+# Use mcp__websets__list_websets with limit=1; expect a successful response with .data[].
+
+# Probe basic Exa MCP — a single trivial search confirms credits + auth
+# Use mcp__claude_ai_Exa__web_search_exa with query="hello world", numResults=1.
+# A 402 indicates credits exhausted. A 401 indicates auth. Either fails the preflight.
+```
+
+If either probe returns 402: halt the build, surface the failure to the user with the link `dashboard.exa.ai/api-keys` and instructions to top up the offending pool. Do not proceed to 0a until both probes pass. (Reference build → F11 Hiring axis flatline traced to skipped preflight: basic-Exa 402 surfaced 30 minutes into a 6-hour build.)
 
 **Step 0a: Detect the path.**
 
@@ -1182,6 +1196,17 @@ Sumble (sumble.com) is the canonical source for tracking tech company hiring. Us
 
 Run AFTER Phase 6i curation so you only fetch jobs for the final dashboard list, not the full Webset return.
 
+**Step 0: Mine the Webset's vertical-specific role-evidence enrichment FIRST.** Before the external fallback ladder (Sumble → careers → LinkedIn → ATS), parse the Webset's already-paid-for role-evidence enrichment for named role-bearers in vertical-relevant titles. Every FDI Webset spec includes a "Pain Evidence" or "Operational Posture" enrichment that surfaces named existing employees in target roles (the per-vertical phrasing was set in Phase 6b). For each curated company:
+
+1. Read the relevant enrichment field from `webset-response.json`.
+2. Extract names + titles + LinkedIn URLs of role-bearers cited there.
+3. Filter each title against the per-build `HIRING_KEYWORD_REGEX` (Phase 5 artifact #2). Keep only matches.
+4. Write each match to `JOB_LISTINGS[<company>]` as: `{title: <exact title>, team: "Verified Role", url: <linkedin>, date: "Verified Active <year>"}`. Mark `team: "Verified Role"` (not "Posting") so downstream code distinguishes verified-headcount evidence from active open reqs.
+
+Step 0 produces hiring evidence that doesn't depend on basic-Exa MCP credits — it uses data the Webset already paid to surface. Steps 1-5 (the original external fallback ladder) still run after Step 0 to layer in active open-req data. The two sources stack: a company can have both Step-0 verified roles AND open reqs, with the regex-match count summing to the score.
+
+**Why Step 0 first:** mitigates the F11 cascade (basic-Exa 402 → empty fallback ladder → uniform-1 Hiring scores). Step 0's data is always available because Websets is on a separate credit pool from basic Exa.
+
 **Step 1: Check for a Sumble MCP first.**
 
 ```
@@ -1495,6 +1520,7 @@ cp template/data.js data.js
 - **No banned tag values.** Search the `tags[]` array for "Stage-1 ICP", "Stage-2 ICP", "Pipeline", "Target", "ICP". If any are present, replace with product names, technical stack, constraints, or relationship status.
 - **GTM thesis swap test.** Strip the company name from the `gtm_thesis`. Could you swap any other company's name in and have it still make sense? If yes, rewrite — the thesis isn't specific enough.
 - **GTM thesis durability test.** Read the `gtm_thesis` and ask: if every named individual in this thesis left their job tomorrow, would the thesis still hold? Specifically scan for: named buyers ("John Morgan"), named champions ("Vivek Gupta"), named warm-intro paths ("via Alex"), comparative claims tied to personnel ("highest-warmth account"), specific role+name combinations ("EVP Chief Scientist Prem Natarajan"). If any are present, move them to CONTACT_MAP and replace with role types in the thesis. Buyer/Champion in the thesis are personas ("Platform Engineering leadership"), not humans.
+- **Durability regex check (target-company names).** Run a regex over `gtm_thesis` matching `\b[A-Z][a-z]+ [A-Z][a-z]+\b` (capitalized two-word names). For every match, verify whether the matched string is in `PRIMARY_TEAM` (allowed reference, but should not appear in thesis), is a firm/fund name (e.g., "Stephens Group", "Snow Phipps" — allowed), or is a target-company individual (FAIL). Any name that is neither a Primary teammate nor a recognized firm/fund triggers entry rewrite. The Lantern May 6 build slipped "Brian Schlise" (incoming President at APR Supply) and "Marco Schooley" (new EVP at Kele) through the prior subjective check; this regex catches both. Replacement pattern: target-company exec names → role descriptor ("incoming President", "new EVP Strategy & Transformation"), then move the name to `CONTACT_MAP`. (Reference build → F4 personnel-fragile thesis recurrence: Lantern May 6 audit found 2 of 10 entries violated despite the prior check being in the skill.)
 - **Antagonist persona consistency check.** If the gtm_thesis ends with `**NOT [persona]**` (e.g., **NOT** ML engineering, **NOT** security/governance, **NOT** controls engineering, **NOT** clinical operations — whatever persona this build's antagonist warning names), grep the company's CONTACT_MAP entries for matching persona keywords. The titles flagged in NOT must NOT appear as recommended champions. Worked example: gtm_thesis says **NOT** Technology Governance team → CONTACT_MAP cannot list a contact whose title contains "Technology Governance" as `type: 'business'` champion. If a match exists, drop the contact, demote them to a non-champion `note`-only entry, or rewrite the antagonist callout. (Reference build → F5 antagonist contradiction.)
 - **Em-dash count ≤ 3 per entry body text** (per Rule #1, hardened). Count em dashes across subtitle + overview + gtm_thesis + tag tooltips + all section row values + axis reasonings + signals[] bullets. EXCLUDES COMPANY_SOURCES titles (`[Outlet] — [Specific topic]` separators are structural and exempt). Implementation: split the entry into the body fields, run a single regex count, fail at >3. If higher, rephrase using commas, periods, semicolons, or parentheses BEFORE writing the next company.
 - **Word caps per Rule #15.** Count words for each of these fields: `subtitle` ≤18, `overview` ≤80, `gtm_thesis` ≤75, `opp_reason` ≤50, `distress_reason` ≤60, `residency_reason` ≤90. If any field exceeds, rewrite to the cap before moving on. The Plural-build regression had gtm_thesis at 132w avg (3.3× the V1 baseline) — this self-check is the enforcement that prevents recurrence.
@@ -1511,6 +1537,10 @@ If a company entry fails any check, fix before adding the next.
 **After all 10 entries are written, before commit — global tier-distribution check:**
 
 - Count `tier` values across all 10 companies. The skill targets approximately **5 high / 4 med / 1 low** for honest signal discrimination. If everything is `'high'`, tiers carry no information. **The check fails if the build ships zero `tier='low'` companies.** When this happens, demote the weakest-evidence entry to `'low'` (typically the company where K8s scale is inferred rather than primary-cited, or where the founder-specific axis caps at 3 rather than 4-5). Document the demoted slot in BUILD_NOTES.md § 9 score-distribution. Distribution-hard floor: at most 7 of 10 may be `'high'`. (Reference build → Plural FDI shipped 7 high / 3 med / 0 low — over-graded; subagent ignored the soft-target.)
+
+**After all 10 entries are written, before commit — axis-uniformity check:**
+
+- For each axis (`signal_score`, `competitive_distress`, `data_residency`, plus the runtime-computed Hiring sub-score from `JOB_LISTINGS`), count the most-frequent value across the 10 entries. If any single axis has an identical score in **8 or more (≥80%) of the 10 companies**, the axis is flatlined and carries zero discriminating signal. **The check fails the build.** The subagent must investigate: either the data source for that axis is missing/empty (e.g., F11 — JOB_LISTINGS empty cascade for Hiring), or the rubric is being misapplied uniformly. Fix the underlying issue and rescore before commit. Surface the offending axis + value in the self-check JSON's `global.axis_uniformity` block. (Reference build → F11 Hiring axis flatline.)
 
 **After all 10 entries are written — emit per-company self-check JSON:**
 
@@ -1538,10 +1568,19 @@ The Phase 7 subagent must emit a single JSON object capturing the self-check sta
   ],
   "global": {
     "tier_distribution": {"high": 5, "med": 4, "low": 1},
-    "tier_check_passed": true
+    "tier_check_passed": true,
+    "axis_uniformity": {
+      "signal_score": {"max_frequency": 4, "passed": true},
+      "competitive_distress": {"max_frequency": 3, "passed": true},
+      "data_residency": {"max_frequency": 5, "passed": true},
+      "hiring_sub_score": {"max_frequency": 5, "passed": true},
+      "axis_uniformity_check_passed": true
+    }
   }
 }
 ```
+
+`axis_uniformity_check_passed` is `false` if any single axis has `max_frequency >= 8` (≥80% of the 10 companies share the same score). Reject the build when false; fix the underlying cause before commit.
 
 If `all_passed: false` for any entry, the subagent must fix the entry before commit. The main thread will pretty-print this JSON in BUILD_NOTES.md § 9 and reject the build if `tier_check_passed: false`. (Reference build → OPEN_QUESTIONS #2 "subagent rule decay" — Plural build's gtm_thesis bloat in companies 1-10 was undetected because no per-company self-check artifact was emitted.)
 
@@ -1780,6 +1819,8 @@ The skill body cites failure modes from a single end-to-end test build (Valar, i
 **F9 — Source-type stacking.** May 5 V2 Webset criteria had 4 of 5 reading against compliance/regulatory text (data residency, sovereignty, GDPR-style framing). Webset hunted in regulatory disclosures and brought back European banks loudest in that corpus. Phase 6e source-type tagging (require ≥3 distinct content tags across criteria) prevents recurrence.
 
 **F10 — Estimated Spend not externally derivable.** May 5 V2 estimated annualized inference spend across 30 companies, all flagged "needs verification" because no public source cites this directly per company. The enrichment ask was structurally wrong. Pattern: when an enrichment field's evidence isn't externally available for the population you're scoring, drop the field or replace with a defensible 4-bucket enum, not "needs verification" filler.
+
+**F11 — Hiring axis flatline from JOB_LISTINGS empty cascade.** Lantern May 6 build hit basic-Exa 402 mid-build, skipping Phase 6j entirely (the Sumble + careers + LinkedIn + ATS fallback ladder all depend on basic Exa). `JOB_LISTINGS[<co>] = []` for all 10 companies → `computeJobSignal()` default returned uniform 1 → Hiring axis carried zero discriminating signal across the dashboard. Three preventions: (1) Phase 0 preflight credit-pool probe halts the build BEFORE work starts when basic-Exa credits aren't funded; (2) Phase 6j Step 0 mines the Webset's already-paid-for role-evidence enrichment for verified named role-bearers as Tier-0 hiring signal that doesn't depend on basic-Exa; (3) Phase 7 axis-uniformity self-check fails the build if any axis has ≥80% identical scores across 10 entries, catching this and any future axis flatline regardless of root cause. Lantern May 6 also exposed a separate F4 recurrence — 2 of 10 gtm_thesis entries named target-company execs ("Brian Schlise", "Marco Schooley"); the existing subjective durability check missed both. Phase 7 self-check now runs an objective `\b[A-Z][a-z]+ [A-Z][a-z]+\b` regex over `gtm_thesis` and fails any capitalized two-word name that isn't in `PRIMARY_TEAM` or a recognized firm/fund.
 
 ### What the reference build got right
 
