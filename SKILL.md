@@ -108,9 +108,11 @@ This is an 11-phase build (Phase 0–10). Do not skip phases. Do not skip ahead.
 
 These rules apply to every piece of text you write into CONTEXT.md, data.js fields (subtitle, overview, gtm_thesis, sections, signal reasonings), BUILD_NOTES.md, and any other output. They do not apply to the user-facing chat messages you post during the build (those can stay conversational), but they do apply to anything that ships in the dashboard.
 
-1. **Avoid em dashes.** Use commas, periods, parentheses, or rephrase. A single em dash per company entry across all fields is the ceiling. Em dashes feel AI-generated and clutter the dashboard.
-   - Bad: "BigPanda is the canonical AIOps reference for the BYOC thesis. Land already executed, focus is on co-developing case study evidence."
-   - Good: "BigPanda is the canonical AIOps reference for the BYOC thesis. Land is already executed; focus is on co-developing case study evidence."
+1. **Avoid em dashes — hard cap, not advisory.** The body-text em-dash count for any single company entry must NOT exceed **3** across subtitle + overview + section row values + tag tooltips + axis reasonings + signals[] bullets combined. Source titles in COMPANY_SOURCES are exempt (the `[Outlet] — [Specific topic]` separator is structural; see Rule #12). Use commas, periods, semicolons, parentheses, or rephrase. Em dashes feel AI-generated and read as written-by-essayist. Phase 7 self-check counts em dashes per company and fails the entry if it exceeds 3 — the entry is rewritten before moving on.
+   - Bad (the Plural-build regression pattern, 3 em dashes in one Pain Points sentence): "Operating EKS at decision-engine scale across multiple regions compresses gross margin as Alloy scales the perpetual-KYC AI feature set — every additional model evaluation amplifies platform-engineering load on a still-mid-market headcount."
+   - Better: "Operating EKS at decision-engine scale across multiple regions compresses gross margin as Alloy scales the perpetual-KYC AI feature set; every additional model evaluation amplifies platform-engineering load on a still-mid-market headcount."
+   - Good (V1 BigPanda baseline): "BigPanda is the canonical AIOps reference for the BYOC thesis. Land is already executed; focus is on co-developing case study evidence."
+   - (Reference build → Plural FDI 2026-05-06 audit found 28.7 em dashes/co body text vs Valar V1's 16.6/co — a 73% bloat regression that traced to Rule #1 being treated as advisory rather than enforced.)
 
 2. **Geographic default: United States and Canada only**, unless the user specifies otherwise in Phase 0. This applies to the Webset, the curated company list, and any contact discovery. If a non-US/Canada company surfaces in the Webset, drop it during Phase 6i curation unless the user explicitly approved a wider geographic scope.
 
@@ -163,6 +165,23 @@ These rules apply to every piece of text you write into CONTEXT.md, data.js fiel
 13. **GTM thesis must be personnel-durable.** The `gtm_thesis` describes *why this company is a structural fit* and must survive personnel changes. Specific named individuals (target-company contacts, Primary teammates, intro paths) belong in `CONTACT_MAP` (the Connections section), which is the dynamic layer. Buyer and Champion in the thesis are *role types* (e.g., "Platform Engineering / Site Reliability lead", "Security/Compliance leadership", "VP Operations / Reliability Engineering lead"), not specific humans. If every named individual in the thesis left their job tomorrow, the thesis must still hold. (Reference build → F4 personnel-fragile thesis.) See TEMPLATE_GUIDE Section 9.3.
 
 14. **Reference build is scaffolding, not content.** The skill carries Valar/inference examples (the reference build) to anchor patterns. Do not let those examples constrain your axes, persona templates, source choices, or wow-evidence shape for a different vertical. If the output sounds like Valar with names changed — same axis labels, same persona descriptions, same wow shape — you've under-delivered. The mandatory axes (Hiring, Opportunity) are reusable across all verticals; everything else (Section 2 label, founder-specific axes, hiring keyword regex, persona titles, wow-evidence shape, Tier-2 source mix) must derive from THIS founder's CONTEXT.md, not from the reference build. The single most reliable signal that a build went wrong is when the output reads as inference-vertical for a non-inference founder.
+
+15. **Body-prose word caps — hard, enforced by Phase 7 self-check.** Long-form prose fields have hard word/sentence ceilings. Subagent-generated entries that exceed are rewritten before moving on. The caps reflect the Valar V1 hand-built baseline; bloat past these numbers reads as AI-essayist register, not founder-voiced.
+
+    | Field | Word cap | Sentence cap | V1 baseline | Self-check |
+    |---|---|---|---|---|
+    | `subtitle` | 18 | 1 | 12-17 (avg ~15) | Already in Rule #8 |
+    | `overview` | **80** | **4** | 64-90 (avg ~68) | Phase 7 self-check counts |
+    | `gtm_thesis` | **75** | **3** | 17-63 (avg ~40) | Phase 7 self-check counts |
+    | `opp_reason` | 50 | 2 | 22-30 | Phase 7 self-check counts |
+    | `distress_reason` | 60 | 2-3 | 20-40 | Phase 7 self-check counts |
+    | `residency_reason` | 90 | 3 (extra room for wow-evidence trace) | 25-50 | Phase 7 self-check counts |
+
+    (Reference build → Plural FDI 2026-05-06 audit found gtm_thesis at 132w avg vs Valar V1's 40w — 3.3× bloat regression. Overview at 115w vs 68w. Length-cap enforcement was missing as an explicit rule.)
+
+16. **No `(a)/(b)/(c)` enumeration in prose contexts.** This style tic is reserved for **`residency_reason` only**, where it traces the score-5 wow-evidence rubric (the `(a) named exec + (b) cited scale + (c) governance friction` shape). Do NOT use `(a)/(b)/(c)` enumeration in subtitle, overview, gtm_thesis, opp_reason, distress_reason, signals[] bullets, or section row values. If the build wants to enumerate three points in one of those fields, use a list (markdown-style hyphens or sentences) rather than the enumeration tic. Phase 7 self-check greps for `(a)` outside `residency_reason` and fails the entry. (Reference build → Plural FDI overview field had `(a)/(b)/(c)` templating in 6 of 10 entries — should have stayed in `residency_reason`.)
+
+17. **`opp_reason` must acknowledge a hurdle when `signal_score` ≤ 4.** Honest weakness signals credibility. The Valar V1 Mastercard pattern is the model: `opp_reason` flags "Mastercard has deep in-house expertise, so Valar needs to demonstrate clear value beyond what their team has built" alongside the opportunity. When `signal_score` is 4 or below, the `opp_reason` text MUST contain at least one challenge-acknowledgment phrase: a hurdle, an in-house competing capability, a procurement obstacle, a competitor relationship, or a timing risk. Phase 7 self-check fails the entry if `signal_score ≤ 4` and `opp_reason` reads uniformly bullish. (Reference build → Plural FDI's `opp_reason` fields were uniformly positive across all 10 companies; honesty leaked into `distress_reason` instead of where it belonged.)
 
 ---
 
@@ -1046,7 +1065,18 @@ Monitor progress at: dashboard.exa.ai/websets/webset_abc123
 I'll continue when it's idle.
 ```
 
-Poll `get_webset` every 30 seconds until status is `idle`. (Tip: the first poll should wait at least 10 seconds after `create_webset` per Exa's recommendation.) If a Webset takes >15 minutes, surface to user and decide whether to abort and retry with looser criteria.
+Poll `get_webset` every 30 seconds (or use `ScheduleWakeup` with delaySeconds=270 to stay in cache window) until status is `idle`. The first poll should wait at least 10 seconds after `create_webset` per Exa's recommendation.
+
+**Early-cancel triggers — don't wait it out.** Webset has good criterion-pass-rate telemetry; use it. The skill's failure mode is letting a slow search drain a too-restrictive criterion until the user is 30+ minutes deep with thin returns. Cancel and re-fire with softened criteria when:
+
+- **Single-criterion pass rate < 10% within first 50-100 analyzed items.** This means the criterion is too narrow; the Webset is searching the wrong corpus or rejecting too aggressively. Cancel the search (`cancel_search`), soften the offending criterion (typically: drop a strict numeric threshold like "50+ clusters" to a softer proxy like "Kubernetes in production at meaningful scale"), keep everything else, and re-fire.
+- **Pass rate is *decreasing* across consecutive polls.** A criterion at 12% → 8% → 6.5% as analyzed_count climbs from 100 → 200 → 250 means the search has drained the obvious matches and is now scraping bottom. Cancel; the remaining returns will be lower-quality than what's already found.
+- **timeLeft estimate is increasing** (Webset's own ETA is growing, not shrinking). The search is hitting analysis-difficult corpora; what's already returned is the high-water mark.
+- **Found count stalls for two consecutive polls** (no new items in 5+ minutes despite ongoing analysis). Cancel and accept partial returns.
+
+In any of these cases, **cancel + accept partial returns** is usually better than re-fire-with-softened. The partial returns are quality matches; the saved findings + intersection-mining of any prior persona Websets in the workspace + Phase 6m founder-pick research often yields enough triangulation for the curated 10 list. (Reference build → Plural FDI 2026-05-06: K8s-50+-clusters criterion dropped from 11.9% → 8.0% → 6.5% pass rate over 16 minutes; canceling at 41% complete with 4 returns turned out to be net-positive — the 4 returned companies were all axis-4 score-5 quality, and the curated list filled out from intersection-mining of prior persona Websets.)
+
+If a Webset reaches `idle` cleanly but takes >15 minutes anyway, that's a slow-but-successful run; keep it. The early-cancel rule is for *thin returns + degrading pass rate* specifically.
 
 **6h — Pull and review items**
 
@@ -1212,6 +1242,8 @@ Sumble is the primary source, but it doesn't cover every company. For non-tech e
 
 The hard floor is **≥1 verified job per company in tier='high'**. If a tier='high' company has zero jobs after the full ladder, drop it to tier='med' before Phase 7. (Reference build → F7 JOB_LISTINGS empty, where 27 of 30 were empty because the build accepted Webset's NULL enrichment without working the fallback.)
 
+**URL specificity rule (per-job).** Each job posting's `url` field MUST be the **specific job-req URL**, not the company's careers landing page. Valar V1 baseline: `https://www.capitalonecareers.com/job/mclean/sr-distinguished-machine-learning-engineer-remote-eligible/1732/93650794080` (specific req ID). Bad pattern: `https://www.finastra.com/about/careers` (generic landing). When a Sumble fetch returns a job with its detail-page URL, keep it; when the fallback ladder yields a careers index URL, return to step 3 (LinkedIn job search by exact company name) and capture the specific posting URL there. Phase 7 self-check fails any JOB_LISTINGS entry where `url` matches `/careers/?$` or `/about/careers/?$`. (Reference build → Plural FDI 2026-05-06: 4 of 10 companies had generic careers-page URLs — a credibility leak readers can spot in one click.)
+
 **Why Sumble first:** generic job board enrichment via Webset returns inaccurate role descriptions and stale postings (validated in May 5 test build). Sumble tracks company-specific hiring with structured role/team/location data. Higher signal, lower noise. The fallbacks fire only when Sumble has no record.
 
 **6k — Contact discovery via Lovelace**
@@ -1300,18 +1332,22 @@ After Phase 6i curation, list every company in the curated 10 that did NOT come 
 # Output: list of companies needing per-company directed research
 ```
 
-**Step 2: Per company, run a 4-query directed research pass.**
+**Step 2: Per company, run a directed research pass. Query budget scales with backlog size.**
 
-For each founder-named pick not in Webset, run these 4 `Exa:web_search_exa` queries in parallel:
+Per-company query budget (default vs. scale-down):
+- **Default — 4-5 queries per company**, when ≤5 founder-named picks need research. This is the canonical depth and produces 4+ Tier-2 sources reliably.
+- **Scale-down — 2-3 highest-leverage queries per company**, when **>5** founder-named picks need research. The full 4-5 query pattern × 6+ companies blows the Exa budget (~30 queries) and burns context for marginal gains. When scaled-down, prioritize queries 1, 3, and 4 below (primary record + leadership + earnings/strategy press); skip queries 2 and 5 unless the company is a tech-forward vertical (engineering blog query) or a regulated vertical with explicit wow-shape evidence to hunt for (tried-and-blocked query). Phase 7 supplementary fetches can fill in any gap during data.js population. (Reference build → Plural FDI 2026-05-06 had 6 founder-named picks needing research; full 4-5 query pattern × 6 = 24-30 queries was reduced to 2-3 leveraged queries × 6 = ~15 queries with no measurable quality loss.)
+
+The 5 canonical queries (run in parallel):
 
 1. `"<Company> 10-K SEC EDGAR"` — gets the SEC filing for public companies. For private, swap to `"<Company> latest funding round" OR "<Company> annual revenue"`.
-2. `"<Company> AI inference engineering blog"` — surfaces engineering content. Add `engineering.<company>.com` to the query if the company is known to host one.
+2. `"<Company> AI inference engineering blog"` — surfaces engineering content. Add `engineering.<company>.com` to the query if the company is known to host one. (Skip when scaled-down for non-tech-forward verticals.)
 3. `"<Company> Chief AI Officer" OR "<Company> VP Platform Engineering"` — leadership / champion personas.
 4. `"<Company> earnings call AI infrastructure"` for public companies, OR `"<Company> AI strategy"` press for private.
 
 For regulated-vertical companies (banks, insurers, healthcare), add a 5th query targeting the wow signal:
 
-5. `"<Company> Fireworks OR Together OR Baseten OR Modal OR Anyscale failed OR blocked OR security OR compliance"` — surfaces tried-and-blocked evidence (the Data Residency axis 5 requirement).
+5. `"<Company> Fireworks OR Together OR Baseten OR Modal OR Anyscale failed OR blocked OR security OR compliance"` — surfaces tried-and-blocked evidence (the Data Residency axis 5 requirement). Adapt vendor list to the founder's vertical when the wow shape is non-inference (e.g., for K8s-management vertical: "Tanzu Broadcom failed OR migrated OR EOL OR Rancher OR OpenShift cost OR sprawl"). (Skip when scaled-down for non-regulated verticals.)
 
 **Step 3: Save to disk.**
 
@@ -1460,7 +1496,10 @@ cp template/data.js data.js
 - **GTM thesis swap test.** Strip the company name from the `gtm_thesis`. Could you swap any other company's name in and have it still make sense? If yes, rewrite — the thesis isn't specific enough.
 - **GTM thesis durability test.** Read the `gtm_thesis` and ask: if every named individual in this thesis left their job tomorrow, would the thesis still hold? Specifically scan for: named buyers ("John Morgan"), named champions ("Vivek Gupta"), named warm-intro paths ("via Alex"), comparative claims tied to personnel ("highest-warmth account"), specific role+name combinations ("EVP Chief Scientist Prem Natarajan"). If any are present, move them to CONTACT_MAP and replace with role types in the thesis. Buyer/Champion in the thesis are personas ("Platform Engineering leadership"), not humans.
 - **Antagonist persona consistency check.** If the gtm_thesis ends with `**NOT [persona]**` (e.g., **NOT** ML engineering, **NOT** security/governance, **NOT** controls engineering, **NOT** clinical operations — whatever persona this build's antagonist warning names), grep the company's CONTACT_MAP entries for matching persona keywords. The titles flagged in NOT must NOT appear as recommended champions. Worked example: gtm_thesis says **NOT** Technology Governance team → CONTACT_MAP cannot list a contact whose title contains "Technology Governance" as `type: 'business'` champion. If a match exists, drop the contact, demote them to a non-champion `note`-only entry, or rewrite the antagonist callout. (Reference build → F5 antagonist contradiction.)
-- **Em dashes ≤ 1 per entry.** Count em dashes across the entry (subtitle, overview, gtm_thesis, all section values). Target: zero or one. If higher, rephrase using commas, periods, or parentheses.
+- **Em-dash count ≤ 3 per entry body text** (per Rule #1, hardened). Count em dashes across subtitle + overview + gtm_thesis + tag tooltips + all section row values + axis reasonings + signals[] bullets. EXCLUDES COMPANY_SOURCES titles (`[Outlet] — [Specific topic]` separators are structural and exempt). Implementation: split the entry into the body fields, run a single regex count, fail at >3. If higher, rephrase using commas, periods, semicolons, or parentheses BEFORE writing the next company.
+- **Word caps per Rule #15.** Count words for each of these fields: `subtitle` ≤18, `overview` ≤80, `gtm_thesis` ≤75, `opp_reason` ≤50, `distress_reason` ≤60, `residency_reason` ≤90. If any field exceeds, rewrite to the cap before moving on. The Plural-build regression had gtm_thesis at 132w avg (3.3× the V1 baseline) — this self-check is the enforcement that prevents recurrence.
+- **`(a)/(b)/(c)` enumeration only allowed in `residency_reason`** (per Rule #16). Grep the entry's overview, subtitle, gtm_thesis, opp_reason, distress_reason, signals[] and section row values for `(a)`. If found in any field other than `residency_reason`, rewrite as a list or sentence sequence. The enumeration tic is reserved for the wow-evidence rubric trace, where it earns its space.
+- **`opp_reason` challenge acknowledgment when `signal_score ≤ 4`** (per Rule #17). Read the entry's `opp_reason` value. If `signal_score` is 4 or below, the text MUST contain at least one challenge phrase: a hurdle, in-house competing capability, procurement obstacle, competitor relationship, timing risk, or honest gap. If `opp_reason` reads uniformly bullish without any caveat, append a 1-sentence challenge phrase grounded in the actual research. (Valar V1 Mastercard pattern: "Mastercard has deep in-house expertise, so [Founder] needs to demonstrate clear value beyond what their team has built.")
 - **Source citation density.** Count cited rows in Profile + `[SECTION_2_LABEL]`. V1 averages 5 of ~10. If your entry has fewer than 4 of 9 cited, you missed URL extraction in step 13 — go back and parse the Webset enrichment text more carefully.
 - **COMPANY_SOURCES count.** Open the entry's source list. Count it. Target is 6 (V1 average). Hard floor is 4 — under 4 means escalate (extra Exa fetches for missing tier, or drop the company's tier, or swap company). 4-5 is acceptable if Tier 1 / Tier 2 quality is present, but try once more to reach 6 first. (Reference build → F2 source thinness.)
 - **No PR-aggregator-only sourcing.** If COMPANY_SOURCES is anchored on BusinessWire / PRNewswire / GlobeNewswire press releases without a Tier 1 (SEC) or Tier 2 (engineering blog) source alongside, the source list is too weak. Find the trade-press follow-up or the underlying primary record.
@@ -1468,6 +1507,43 @@ cp template/data.js data.js
 - **Generic test.** If you couldn't tell the entry apart from another company in the same segment, the patterns aren't landing.
 
 If a company entry fails any check, fix before adding the next.
+
+**After all 10 entries are written, before commit — global tier-distribution check:**
+
+- Count `tier` values across all 10 companies. The skill targets approximately **5 high / 4 med / 1 low** for honest signal discrimination. If everything is `'high'`, tiers carry no information. **The check fails if the build ships zero `tier='low'` companies.** When this happens, demote the weakest-evidence entry to `'low'` (typically the company where K8s scale is inferred rather than primary-cited, or where the founder-specific axis caps at 3 rather than 4-5). Document the demoted slot in BUILD_NOTES.md § 9 score-distribution. Distribution-hard floor: at most 7 of 10 may be `'high'`. (Reference build → Plural FDI shipped 7 high / 3 med / 0 low — over-graded; subagent ignored the soft-target.)
+
+**After all 10 entries are written — emit per-company self-check JSON:**
+
+The Phase 7 subagent must emit a single JSON object capturing the self-check status for each company, so the main thread can verify late entries (companies 7-10) didn't get the rule-decay treatment that early entries (1-3) caught. Format:
+
+```json
+{
+  "self_checks": [
+    {
+      "company": "JPMorgan Chase",
+      "subtitle_words": 16,
+      "overview_words": 78,
+      "gtm_thesis_words": 73,
+      "opp_reason_words": 47,
+      "em_dash_body_count": 2,
+      "abc_enumeration_outside_residency": false,
+      "opp_reason_has_challenge_ack": true,
+      "row_sources_cited": 9,
+      "company_sources_count": 7,
+      "tier": "high",
+      "all_passed": true,
+      "issues": []
+    },
+    ...
+  ],
+  "global": {
+    "tier_distribution": {"high": 5, "med": 4, "low": 1},
+    "tier_check_passed": true
+  }
+}
+```
+
+If `all_passed: false` for any entry, the subagent must fix the entry before commit. The main thread will pretty-print this JSON in BUILD_NOTES.md § 9 and reject the build if `tier_check_passed: false`. (Reference build → OPEN_QUESTIONS #2 "subagent rule decay" — Plural build's gtm_thesis bloat in companies 1-10 was undetected because no per-company self-check artifact was emitted.)
 
 **Validate JS parses** after each batch of ~5 companies (or after each one if you're being careful):
 
@@ -1603,11 +1679,31 @@ Then walk this manual checklist:
 
 Fix any failures before delivery.
 
+**Build artifacts cleanup (before final push to GitHub).** The build process generates several intermediate JSON files (`webset-spec.json`, `webset-response.json`, `founder-pick-research.json`, `lovelace-contacts.json`, `sumble-jobs.json`, `curated-10-list.json`, `inputs/`, `template/`) that are useful for reproducibility but clutter the deployable repo root. The dashboard the founder views is just `index.html` + `data.js` (+ optional `CONTEXT.md` and `BUILD_NOTES.md` if you want them visible). Before final commit + push, write a `.gitignore` to exclude build artifacts from future commits, OR move them to a `.build/` subdirectory so they remain version-tracked but visually out of the way:
+
+```bash
+# Option A: keep artifacts tracked but tucked under .build/
+mkdir -p .build
+git mv webset-spec.json webset-response.json founder-pick-research.json lovelace-contacts.json sumble-jobs.json curated-10-list.json .build/
+# inputs/ and template/ are kept at root since they're conceptually scoped to the build (read-only references)
+# OR move them under .build/ too if the repo is going to be shared as a Sam-readable artifact
+
+# Option B: write .gitignore excluding build artifacts
+cat > .gitignore <<'EOF'
+# Build intermediates — useful for reproducibility but not deployable
+.build/
+*.tmp.json
+node_modules/
+EOF
+```
+
+Recommendation: **Option A** when the repo will be shared with the founder (cleaner Git tree); **Option B** when only the maintainer touches the repo. Either way, the deploy artifacts (`index.html`, `data.js`) stay at the root.
+
 **Final commit if anything was fixed:**
 
 ```bash
 git add -u
-git commit -m "Phase 10: self-check fixes"
+git commit -m "Phase 10: self-check fixes + build-artifact tidy"
 ```
 
 **Deliver, present the repo to the user:**

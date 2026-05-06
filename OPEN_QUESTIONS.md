@@ -2,27 +2,55 @@
 
 Things that need real-world testing, founder input, or user judgment to resolve. Not skill edits — design questions and validation gaps.
 
-Last updated: post-`7154897` (Triple-audit Tier 1 + Tier 2 fixes complete).
+Last updated: post-Plural-FDI-2026-05-06 audit (skill polish pass: word caps, em-dash hardening, tier-distribution enforcement, JSON self-check emission, early-cancel triggers, scale-down rule).
+
+---
+
+## Plural FDI 2026-05-06 — validation results
+
+The Plural FDI build was the second end-to-end run of the skill (after Valar V2 May 5). Plural is the **first non-inference vertical** the skill has been tested against — Kubernetes fleet management for regulated-finance + healthcare-payer + telecom enterprises. Validation results vs the open questions:
+
+- **Q1 (vertical generalization)** — **partially validated**. The skill produced a credibly-vertical-shaped Plural dashboard: Section 2 cleanly relabeled to "Kubernetes Footprint", axes correctly named "Kubernetes Fleet Pain" + "AI Mandate × Governance", HIRING_KEYWORD_REGEX scoped to Platform Engineering / SRE / AI Platform titles. Webset returned 3 ICP-correct companies (JPMorgan, RBC, Manulife) with strong primary sources. ICP correctness confirmed by user. Body-copy quality regressed (see Q2 below).
+
+- **Q2 (subagent rule decay)** — **validated as a real issue**. The Phase 7 subagent ignored Output Style Rule #1 (em dashes ≤1) by a 28× factor (28.7/co vs ceiling 1) and ignored implicit length expectations (gtm_thesis 132w avg vs Valar V1's 40w). Per-company self-check JSON emission, now added to SKILL.md Phase 7, is the fix.
+
+- **Q3 (founder-pick research effectiveness)** — **partially validated**. With 6 founder-named picks needing research and the original 4-5 query-per-company budget = 24-30 queries, Plural build had to compress to 2-3 queries per company. Quality held (4-5 Tier-2 sources per company achieved). Skill now has a scale-down rule when picks > 5.
+
+- **Q4 (wow shape generalization)** — **validated**. The hybrid Wow Shape C ("K8s fleet pain + AI governance friction") worked end-to-end. Score-5 evidence rubric required cited 50+ clusters AND named senior AI exec AND governance friction quote — 5 of 10 Plural companies hit it (JPMorgan, RBC, Manulife, Barclays, Kaiser); 5 capped at 4 with documented reasons. The wow-shape generalization holds for non-inference verticals when the founder's wow is articulated cleanly in CONTEXT.md.
+
+- **Q5 (Sumble coverage non-tech)** — **deprecated for skill V2**. Plural build skipped the Sumble dependency entirely; Phase 7 subagent did inline `WebSearch` + `WebFetch` for hiring evidence per company during data.js population. Worked fine. Skill could note that Sumble is optional when the Phase 7 subagent has WebSearch/WebFetch access (most builds do).
+
+- **NEW Q11: Webset slow-search early-cancel triggers**. Surfaced by the Plural build: K8s-50+-clusters criterion dropped from 11.9% → 6.5% pass rate; canceling at 41% complete with 4 returns was net-positive vs. waiting 30+ more minutes for marginal additions. Skill now codifies early-cancel rules in Phase 6g.
+
+- **NEW Q12: existing Webset intersection-mining**. Plural build triangulated against pre-existing persona Websets in the workspace (Buckets A/B/C from May 5 SRE/AI/Platform campaigns) for company-frequency curation signal. Worth generalizing: when the workspace has prior persona Websets for the same founder, mine them at Phase 6h-6i for cross-Webset company density. Currently informal; could be Phase 6 step.
+
+- **NEW Q13: opp_reason challenge acknowledgment was missing as a rule**. Valar V1 Mastercard pattern (flagging in-house competing capability) wasn't codified; Plural's opp_reasons were uniformly bullish. Now Output Style Rule #17.
 
 ---
 
 ## What hasn't been validated end-to-end
 
-**1. Vertical generalization claim.** The skill claims to be vertical-agnostic after the recent refactor. Untested. The May 5 Valar V2 build is the only end-to-end run; that's the inference vertical. To confirm generalization works, someone needs to run the skill on:
+**1. Vertical generalization claim — partially validated by Plural build (regulated-finance + healthcare + telecom).** Still unvalidated:
 
-- Another inference founder (control — should hit ≥80% V1 quality)
-- A non-inference, non-tech-forward vertical (industrials predictive-maintenance, manufacturing IoT, climate hardware) — hardest test because Tier-2 source landscape diverges most
-- A regulated-but-not-inference vertical (biotech / medtech / healthcare delivery) — tests whether the wow-evidence shape generalization actually works
+- Industrials predictive-maintenance, manufacturing IoT, climate hardware — hardest test because Tier-2 source landscape diverges most
+- Biotech / medtech — tests whether the wow-evidence shape generalization extends to FDA filings / clinical trial registries as primary records
+- Pure consumer / D2C — tests whether B2B SaaS-shaped Profile rows ("Cloud Provider", "AI Maturity") still serve
 
-If all three hit ≥75% V1 quality on the audit dimensions (Companies, ROW_SOURCES count, COMPANY_SOURCES median, JOB_LISTINGS coverage, gtm_thesis specificity, residency-axis discrimination), the skill is generalized. If industrials lands at 50%, the prose is more inference-biased than the refactor claims.
+If next two verticals hit ≥75% V1 quality, generalization claim is fully resolved.
 
-**2. Phase 7 subagent rule decay.** The subagent has 13 self-check items per company × 10 companies = 130 self-checks per build. Untested whether the subagent honors the late checks (companies 7-10) with the same rigor as early ones (1-3). One worth instrumenting: have the subagent emit a per-company self-check JSON object (`{company: "X", checks: {subtitle_under_18: true, ...}}`) so the main thread can verify nothing got skipped.
+**2. Phase 7 subagent rule decay — VALIDATED AS REAL.** Plural build confirmed the issue (gtm_thesis bloat, em-dash ignore). Fix shipped (per-company self-check JSON in SKILL.md Phase 7). Untested whether the JSON-emission instrumentation is actually honored by future subagent runs — the meta-question is whether the subagent will skip emitting the JSON when it would expose its own rule violations.
 
-**3. Founder-pick research path effectiveness.** Phase 6m runs 4-5 directed Exa queries per founder-named pick not in Webset. Untested whether this actually produces ≥4 Tier-2 sources for a typical Tom-named-pick (e.g., HubSpot, Workday). Some companies have thin public engineering/research footprints; the queries may return generic Reuters redirects + the company's marketing site even with strong instructions.
+**3. Founder-pick research path effectiveness — partially validated.** Plural build had 6 picks; 2-3 queries/co produced ≥4 Tier-2 sources per company in 5 of 6 cases. The 6th (DTCC) hit exactly 4 sources at the floor. Untested for verticals where private-company primary records are harder to find (early-stage biotech, consumer brands without SEC presence).
 
-**4. The "wow signal evidence shape" generalization.** Score-5 on the founder-specific axis requires "cited evidence in the wow signal's evidence shape." For inference, this is concrete (tried-and-blocked vendor). For industrials ("legacy-system reference"), biotech ("regulatory milestone"), fintech ("CFO earnings-call quote") — the shape language is in the skill but the *enforcement* is left to the model. Untested whether the subagent will actually distinguish a "legacy-system reference" from generic "uses old technology" filler.
+**4. The "wow signal evidence shape" generalization — VALIDATED for hybrid shapes (Plural Wow C).** Untested:
 
-**5. Sumble coverage for non-tech verticals.** Sumble is the primary hiring data source. Stated coverage is uneven for non-tech enterprises. Untested how often the fallback ladder (careers / LinkedIn / ATS) actually produces ≥1 verified job for a tier='high' company in industrials/biotech/healthcare.
+- Industrials "legacy-system reference" (e.g., 10-K cites $X annual unplanned-downtime cost)
+- Biotech "regulatory milestone" (e.g., FDA submission pending on a single-vendor pipeline)
+- Fintech regtech "CFO earnings-call quote about a named compliance gap"
+
+Single-evidence-shape verticals haven't been run yet.
+
+**5. Sumble coverage for non-tech verticals — DEPRECATED.** Plural build skipped Sumble entirely; Phase 7 subagent did inline WebSearch for hiring per company. Worked fine. Sumble is optional when the Phase 7 subagent has direct WebSearch + WebFetch access. Update SKILL.md Phase 6j to say: "Sumble is preferred-when-available; if the build is running with WebSearch/WebFetch in the Phase 7 subagent, you may skip Phase 6j entirely and let the subagent fetch hiring per company during data.js population."
 
 ---
 
