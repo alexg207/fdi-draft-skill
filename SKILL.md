@@ -49,9 +49,12 @@ The skill operates inside a per-founder Git repo at `~/fdi/<founder-slug>/`. Lay
 │   ├── index.html                       #   Placeholder dashboard
 │   ├── CONTEXT_TEMPLATE.md              #   Fillable shell for Phase 4
 │   └── BUILD_NOTES_TEMPLATE.md          #   Fillable shell for Phase 9
-├── webset-spec.json                     # Saved Phase 6f — input to create_webset
+├── config.json                          # Saved Phase 0 — founder name, slug, geo scope, build start
+├── webset-spec.json                     # Saved Phase 6g — input to create_webset (assembled in 6a-6f)
 ├── webset-response.json                 # Saved Phase 6h — full items + enrichments
-├── lovelace-contacts.json               # Saved Phase 6j — LinkedIn results per company
+├── sumble-jobs.json                     # Saved Phase 6j — Sumble + fallback job postings per company
+├── lovelace-contacts.json               # Saved Phase 6k — LinkedIn results per company
+├── founder-pick-research.json           # Saved Phase 6m — directed research for founder-named picks
 ├── CONTEXT.md                           # Generated Phase 4
 ├── data.js                              # Generated Phase 7 (overwrites template's)
 ├── index.html                           # Generated Phase 8 (customized from template/)
@@ -398,9 +401,21 @@ mkdir -p ~/fdi/$SLUG/inputs
 # (copy docs if provided)
 cd ~/fdi/$SLUG
 git clone https://github.com/alexg207/fdi-template.git template/
+
+# Save build config (geo scope, founder name) — Phase 6c will read this
+cat > config.json <<EOF
+{
+  "founder_name": "<Company Name>",
+  "slug": "$SLUG",
+  "description": "$DESCRIPTION",
+  "geo_scope": "$GEO_SCOPE",
+  "build_started": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+}
+EOF
+
 git init
-git add inputs/ template/
-git commit -m "Phase 0: working directory setup, template cloned"
+git add inputs/ template/ config.json
+git commit -m "Phase 0: working directory setup, template cloned, build config saved"
 ```
 
 Then surface to the user:
@@ -895,7 +910,11 @@ Source types to tag against:
 | `[earnings]` | Earnings call transcripts, IR commentary | "AI inference cited as cost or margin pressure in earnings" |
 | `[engineering]` | Engineering blogs, technical docs, GitHub | "Has published engineering content on inference architecture or LLM serving" |
 | `[product]` | Product announcements, news, press | "Has named AI product in production (not roadmap)" |
+| `[trade-press]` | Vertical-specific industry press | "Featured in Industrial Maintenance / Endpoints News / Retail Dive coverage of the founder's pain area" |
+| `[analyst]` | Forrester / Gartner / IDC / IDC / vertical analyst notes | "Cited in Gartner Industrial / Forrester Healthcare / IDC Financial Services research" |
 | `[founder-anchor]` | Imported founder CSV / named pipeline | "Listed in founder's outbound CSV" (uses Webset `scope` parameter, not criteria) |
+
+**Choose tags by vertical's actual source landscape.** Tech-forward verticals (inference, data infra, dev tools, cyber): `[engineering]` is rich. Industrials / consumer / healthcare delivery / non-tech enterprise: `[engineering]` is thin; `[trade-press]` and `[analyst]` carry the weight. Don't force `[engineering]` if the vertical doesn't publish engineering content.
 
 **Discipline:** before submitting the spec, write each criterion followed by its tag. Then count distinct tags. If fewer than 3 distinct tags, revise — replace duplicate-tag criteria with criteria that read against an underrepresented part.
 
@@ -1326,7 +1345,7 @@ A real test on May 4 with 5 companies × 3 enrichments returned in ~5 minutes fo
 
 ### Phase 7: Populate data.js
 
-**Delegate this phase to a Task subagent.** Phase 7 is the heaviest phase by far (10 companies × ~150 lines of data.js per entry × the 13 self-check items). The 1.5MB `webset-response.json` plus `founder-pick-research.json` plus `lovelace-contacts.json` plus `sumble-jobs.json` plus CONTEXT.md plus the template files don't all fit in the main thread's context efficiently. Spawn a `general-purpose` Task subagent and pass it:
+**Delegate this phase to a Task subagent.** Phase 7 is the heaviest phase by far (10 companies × ~150 lines of data.js per entry × the 15 self-check items). The 1.5MB `webset-response.json` plus `founder-pick-research.json` plus `lovelace-contacts.json` plus `sumble-jobs.json` plus CONTEXT.md plus the template files don't all fit in the main thread's context efficiently. Spawn a `general-purpose` Task subagent and pass it:
 
 - Working directory path (`~/fdi/<slug>/`)
 - The 5 Phase 5 artifacts (`SECTION_2_LABEL`, `HIRING_KEYWORD_REGEX`, `WOW_EVIDENCE_SHAPE`, the 4 axis definitions, the segment structure)
@@ -1334,7 +1353,7 @@ A real test on May 4 with 5 companies × 3 enrichments returned in ~5 minutes fo
 - The list of all 13 Phase 7 self-check items it must pass
 - The instruction to commit `data.js` when done (not push)
 
-The subagent reads `webset-response.json`, `founder-pick-research.json`, `lovelace-contacts.json`, `sumble-jobs.json`, CONTEXT.md, `template/TEMPLATE_GUIDE.md`, and `template/data.js` itself. It builds entries one company at a time, runs the 13 self-checks per entry, and writes the final data.js to disk. The main thread doesn't load any of those files; it just receives the subagent's status report at the end.
+The subagent reads `webset-response.json`, `founder-pick-research.json`, `lovelace-contacts.json`, `sumble-jobs.json`, CONTEXT.md, `template/TEMPLATE_GUIDE.md`, and `template/data.js` itself. It builds entries one company at a time, runs the 15 self-checks per entry, and writes the final data.js to disk. The main thread doesn't load any of those files; it just receives the subagent's status report at the end.
 
 Failure recovery: if the subagent reports issues (e.g., 2 companies couldn't reach the 4-source floor even after the fallback ladder), the main thread decides whether to drop those companies, accept the lower tier, or pause for user input.
 
