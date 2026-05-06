@@ -1488,28 +1488,40 @@ git commit -m "Phase 7: data.js populated (N companies across pipeline/mid-marke
 
 ### Phase 8: Customize index.html
 
-The template HTML carries Valar's labels and structure as defaults, almost everything needs swapping for a non-Valar founder. Start by copying the template:
+The template HTML uses `{{...}}` placeholders for everything that varies per build. Start by copying the template:
 
 ```bash
 cp template/index.html index.html
 ```
 
-Now edit `index.html` directly. Walk this checklist:
+Now substitute every `{{...}}` placeholder. The full list (10 placeholders, all enumerable via `grep -oE "\{\{[A-Z_]+\}\}" template/index.html | sort -u`):
 
-1. Replace `{{PRODUCT_NAME}}` with the founder's product name throughout (~5-7 occurrences depending on template version).
-2. Replace `{{PRODUCT_SLUG}}` with a lowercase-dash slug for the Slack channel reference.
-3. In `<script>`, find `buildScoreTips()`, it has hardcoded label strings ("Inference Pain", "Data Residency", "Buying Trigger", "Hiring"). The first two are Valar-specific; replace with your axis names from Phase 5. The latter two ("Buying Trigger" → conceptually "Opportunity Score" axis, and "Hiring") are mandatory axes, keep their function but rename labels if you want different display names.
-4. In `dotsRow()` call sites (search for `dotsRow('Inference Pain'`, `dotsRow('Data Residency'`), update labels to match Phase 5 axis names. There are typically ~4 of these calls per render.
-5. Update the `labels` object inside the detail-view tooltip code (search for `labels = {pain:'Inference Pain'...}` to update those references).
-6. In `computeJobSignal()`, replace the hiring keyword regex with the `HIRING_KEYWORD_REGEX` you produced in Phase 5 (artifact #2). The regex was already used in Phase 6j to filter Sumble results; now embed it in `index.html` so the in-browser hiring sub-score uses the same matching logic the dashboard data was built against. Consistency between Phase 6j filtering and Phase 8 in-browser scoring is what makes the Hiring axis numerically meaningful.
-7. Update tab labels in `<nav class="page-tabs">` if your segment IDs differ from default.
-8. Sanity check `.tag.brand` CSS class is intact. All `c: 'brand'` values in your data.js render with founder accent.
+| Placeholder | Source / Value |
+|---|---|
+| `{{PRODUCT_NAME}}` | Founder's product name (Phase 0) |
+| `{{PRODUCT_SLUG}}` | Founder's slug (Phase 0) for Slack channel reference |
+| `{{AXIS1_LABEL}}` | Phase 5 founder-specific axis 1 name (e.g., "Inference Pain", "Workflow Pain", "Process Pain") |
+| `{{AXIS1_DESCRIPTION}}` | One-sentence "what it measures" for axis 1, ending in a period — e.g., "heterogeneous-accelerator routing, gross-margin, or latency pain. Sourced from earnings calls, blog posts, and product docs." |
+| `{{AXIS2_LABEL}}` | Phase 5 founder-specific axis 2 name (the wow-axis) |
+| `{{AXIS2_DESCRIPTION}}` | One-sentence "what it measures" for axis 2 |
+| `{{HIRING_AXIS_DESCRIPTION}}` | One-sentence description of what the Hiring sub-score measures for this vertical (e.g., "active job listings for ML / inference platform roles. Specific tech in JDs (Triton, vLLM, etc.) raises the score.") |
+| `{{HIRING_FALLBACK_TEXT}}` | Text shown in the tooltip when a company has zero hiring signal (e.g., "No specific inference/ML hiring detected.") |
+| `{{HIRING_KEYWORD_REGEX}}` | Phase 5 artifact #2 — the literal regex (e.g., `/inference\|llm \|triton/i`) |
+| `{{SEGMENT_MIDMARKET_SUBTITLE}}` | One-sentence subtitle for the Mid-Market tab landing page (e.g., "Data-sensitive mid-market accounts with near-term BYOC inference need.") |
+
+Substitute via `sed` or directly — all should be replaced before validation. After replacement, the grep at the bottom of this phase should return zero `{{...}}` matches.
+
+Other Phase 8 work:
+
+1. Update tab labels in `<nav class="page-tabs">` if your segment IDs differ from default (default is pipeline / midmarket / enterprise).
+2. Sanity check `.tag.brand` CSS class is intact. All `c: 'brand'` values in your data.js render with founder accent.
+3. The data.js `{{SECTION_2_LABEL}}` placeholder is consumed by index.html's section rendering — verify Phase 7 set it consistently across all entries.
 
 **Validate after edits:**
 
 ```bash
-# Check no leftover Valar-specific strings remain (should return 0 lines for non-Valar founders)
-grep -E "Inference Pain|Data Residency|\\{\\{PRODUCT_NAME\\}\\}|\\{\\{PRODUCT_SLUG\\}\\}" index.html
+# Self-validating: any remaining {{...}} placeholder = a missed substitution
+grep -nE "\\{\\{[A-Z_]+\\}\\}" index.html
 # If any results, those are missed replacements — fix.
 
 # Check the file is reasonably-sized HTML (not corrupted)

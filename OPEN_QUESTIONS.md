@@ -83,30 +83,13 @@ Update after each end-to-end run. Move resolved questions to a `CHANGELOG.md` or
 
 The triple audit (cross-repo, cross-reference, dry-run) surfaced these issues. Tier 1 (deterministic fixes) and Tier 2 (safe surgical edits) were applied. Tier 3 items were held because they require judgment about template-rendering side effects or substantial new content the user should review.
 
-### T3-1: data.js placeholder rewrite (HIGH severity)
-The Acme Corp placeholder in `fdi-template/data.js` (lines 124-132) demonstrates the **banned schema** that SKILL.md Output Style Rule #10 explicitly prohibits: it has 6 Profile rows including `'Founded'`, `'Headquarters'`, `'{{PRODUCT_NAME}} Status'` — all explicitly banned. A subagent following "fill the template's existing shape" will copy the banned schema. The other 4 placeholders (Beta/Gamma/Delta/Epsilon) skip the banned rows but skip required ones too — none demonstrate the locked 5/4/5 row counts.
+### T3-1: data.js placeholder rewrite ✅ RESOLVED (commit `ef4ace4` in fdi-template)
+Acme Corp rewritten to canonical 5/4/5-row demonstration. Banned rows (Founded, Headquarters, "[Founder] Status") removed. Other 4 placeholders (Beta, Gamma, Delta, Epsilon) normalized to same locked shape. Section 2 placeholder renamed `{{OPPORTUNITY_SECTION_TITLE}}` → `{{SECTION_2_LABEL}}`. node --check passes.
 
-**Fix:** Rewrite Acme as canonical 5/4/5-row demonstration (Industry, Revenue, Employees, Cloud Provider, AI Maturity for Profile; Use Cases, Current Stack, Pain Points, Estimated Spend for Section 2; Approach, Key Evidence, Urgency Level, Target Buyer, Messaging Angle for GTM). Either delete the other 4 placeholders or normalize all 5 to the same locked shape.
+### T3-2: index.html `{{...}}` placeholder conversion ✅ RESOLVED (commit `ef4ace4` in fdi-template)
+9 hardcoded inference-vertical strings converted to 8 new `{{...}}` placeholders: `{{AXIS1_LABEL}}`, `{{AXIS1_DESCRIPTION}}`, `{{AXIS2_LABEL}}`, `{{AXIS2_DESCRIPTION}}`, `{{HIRING_AXIS_DESCRIPTION}}`, `{{HIRING_FALLBACK_TEXT}}`, `{{HIRING_KEYWORD_REGEX}}`, `{{SEGMENT_MIDMARKET_SUBTITLE}}`. Phase 8 grep validation now self-validating: any remaining `{{...}}` = bug. SKILL.md Phase 8 step list rewritten to enumerate all 10 placeholders with sources/values.
 
-**Why deferred:** Could break per-build `data.js` rendering if we accidentally drop a field the JS expects. Low risk but worth confirming the JS side once before committing. ~30 minutes of work.
-
-### T3-2: index.html `{{...}}` placeholder conversion (HIGH severity)
-9 hardcoded inference-vertical strings in `fdi-template/index.html` that Phase 8's grep validation can miss:
-
-| Line | Hardcoded string | Why missed |
-|---|---|---|
-| 562 | `'No specific inference/ML hiring detected.'` | Tooltip text, not in checklist |
-| 566 | `'heterogeneous-accelerator routing, gross-margin, or latency pain'` | Tooltip body, not just label |
-| 567 | `'sovereignty, HIPAA/PCI/PHI'` | Tooltip body |
-| 569 | `'ML / inference platform roles. Specific tech in JDs (Triton, vLLM, etc.)'` | Tooltip body |
-| 620 | The hiring keyword regex itself | Phase 8 step 6 says replace, but no `{{...}}` marker |
-| 720 | `'Data-sensitive mid-market accounts with near-term BYOC inference need.'` | Segment subtitle, easy to miss |
-| 897-898 | `dotsRow('Inference Pain', ...)` and `dotsRow('Data Residency', ...)` | Render calls |
-| 1370 | `var labels = {pain:'Inference Pain',residency:'Data Residency',trigger:'Buying Trigger',hiring:'Hiring'}` | Labels object |
-
-**Fix:** Convert all 9 to `{{AXIS1_LABEL}}`, `{{AXIS1_DESCRIPTION}}`, `{{AXIS2_LABEL}}`, `{{AXIS2_DESCRIPTION}}`, `{{HIRING_AXIS_DESCRIPTION}}`, `{{HIRING_FALLBACK_TEXT}}`, `{{SEGMENT_MIDMARKET_SUBTITLE}}`, `{{HIRING_KEYWORD_REGEX}}`. Phase 8 then becomes a single grep validation: any `{{...}}` left = bug.
-
-**Why deferred:** Risk of breaking the JS rendering if a placeholder lands inside a string-interpolated template literal incorrectly. Worth one careful pass with browser preview. ~45 minutes of work.
+Final scan: zero inference-vertical hardcoded strings in index.html outside the JS-comment legend (lines 526-527, intentional documentation).
 
 ### T3-3: Add non-inference worked examples to TEMPLATE_GUIDE Section 9 (MEDIUM)
 Section 9's worked examples are 100% Valar/inference. Output Style Rule #14 says "if the output sounds like Valar with names changed, you've under-delivered" — but the only craft reference Phase 7 sends the subagent to is 100% inference. The anti-anchor callout (just added) helps but isn't a substitute for parallel non-inference examples.
