@@ -236,6 +236,12 @@ A "minor" decision is one where:
 | 9 | BUILD_NOTES.md | **Auto-proceed.** |
 | 10 | Self-check | **Auto-proceed** unless a check fails, then surface the failure and ask whether to fix or ship anyway. |
 
+**Target account count (scope/cost lever).** Every build carries a target curated-account count, default **10** (valid 3-30). Sources, in priority order: explicit dispatch input (`target_accounts` from the GTM Hub form / Slack), the user's ask at Phase 0, else default. Record it in `config.json` as `target_accounts` at Phase 0. It scales the paid scope:
+
+- Phase 6d/6e: size `searchCount` so the Webset returns ~**1.5-2x the target** in strong matches (e.g. target 10 → pull ~15; target 25 → pull ~35-40). Enrichment cost scales linearly - keep the enrichment set identical, scale only the count.
+- Phase 6i: curate to **exactly the target** (one fewer is fine if the last candidate is weak - N-1 strong beats N with a passenger).
+- Phase 7/8c: `scan.curated`, hero stats, and shortlist copy all reflect the actual curated count - never hardcode 10.
+
 **Status update format for auto-proceed moments.** Keep it tight (1-3 lines):
 
 ```

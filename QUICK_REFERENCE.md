@@ -143,6 +143,8 @@ Copy proven code from `~/fdi/lantern-auto/dashboard.html`. Full prose: SKILL.md 
 
 **Landing/cover page = Phase 8b (OPTIONAL, off by default since v3.1).** The walkthrough is the entry page; build a landing only on explicit ask.
 
+**Target accounts:** default 10 (3-30); from Hub/Slack dispatch input or Phase 0. Webset pulls ~1.5-2x target; Phase 6i curates to target; never hardcode 10 downstream.
+
 **Scroll walkthrough = Phase 8c (STANDARD, auto) — the ENTRY page.** `template/build.html` copied VERBATIM as the build's `index.html` + `build-data.js` synthesized by subagent from config/CONTEXT/webset-spec/scored companies (schema: `template/build-data-template.js`; contract + copy rules: TEMPLATE_GUIDE Section 16). Hero frames account QUALITY not count; one axis carries `wowNote`; evidenceFeed = real citations only; network stays role-illustrative. Final flow every build: index.html (walkthrough, two-beat founder opener w/ floating 3D founder mark) -> dashboard.html, all Ember.
 
 ---
