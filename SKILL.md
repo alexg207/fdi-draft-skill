@@ -58,7 +58,12 @@ The skill operates inside a per-founder Git repo at `~/fdi/<founder-slug>/`. Lay
 ├── founder-pick-research.json           # Saved Phase 6m — directed research for founder-named picks
 ├── CONTEXT.md                           # Generated Phase 4
 ├── data.js                              # Generated Phase 7 (overwrites template's)
-├── index.html                           # Generated Phase 8 (customized from template/)
+├── index.html                           # Generated Phase 8b — the landing/cover page (the dashboard generated in Phase 8 is renamed dashboard.html)
+├── dashboard.html                       # The dashboard app (Phase 8; dark default + light toggle + All tab + score color-coding)
+├── build.html                           # Phase 8c — the scroll cinematic, copied VERBATIM from template (never edited per founder)
+├── build-data.js                        # Phase 8c — the cinematic's only founder-specific input (schema: template/build-data-template.js)
+├── assets/logos/                        # Phase 8c — tool logos for the cinematic's process act (copied from template)
+├── assets/dashboard-preview.png         # Phase 8c — screenshot of THIS build's dashboard for the cinematic hero
 ├── BUILD_NOTES.md                       # Generated Phase 9
 └── .git/                                # Initialized Phase 0; commit per phase
 ```
@@ -97,11 +102,13 @@ You are running the FDI skill in Claude Code for a market development associate 
 Output: 4 files at the repo root, plus 3 saved JSON intermediates:
 - `CONTEXT.md`, the research brief
 - `data.js`, fully populated with real companies and enrichment from the Webset
-- `index.html`, branded, signal-labeled, hiring-regex-tuned for this vertical
+- `index.html`, the dashboard — branded, signal-labeled, hiring-regex-tuned for this vertical, and shipping the v2 defaults (dark mode default + light toggle, score-quality color-coding, "All" tab as the default view). See "Dashboard visual defaults (v2)" before Phase 8.
 - `BUILD_NOTES.md`, documents the structural choices you made
 - `webset-spec.json`, `webset-response.json`, `lovelace-contacts.json`, saved intermediates for reproducibility
+- a landing / cover page (Phase 8b, STANDARD) — the landing ships as `index.html` and the dashboard moves to `dashboard.html`
+- the scroll cinematic (Phase 8c, STANDARD) — `build.html` copied verbatim from the template + a generated `build-data.js` + `assets/`. Final flow every build ships: **index (landing) → build.html (cinematic) → dashboard.html**, all in the Ember design system.
 
-This is an 11-phase build (Phase 0–10). Do not skip phases. Do not skip ahead. Each phase ends with a `git commit` so the build has clean version history.
+This is an 11-phase build (Phase 0–10), plus the standard landing (Phase 8b) and cinematic (Phase 8c). Do not skip phases. Do not skip ahead. Each phase ends with a `git commit` so the build has clean version history.
 
 ---
 
@@ -226,6 +233,8 @@ A "minor" decision is one where:
 | 6m | Founder-pick research | **Auto-proceed.** |
 | 7 | data.js population | **Auto-proceed.** Subagent runs the heavy lift; main thread stays out. |
 | 8 | index.html customize | **Auto-proceed.** |
+| 8b | Landing page | **Auto-proceed with defaults** (build it; Ember system). Stop only if the founder brand demands a custom accent/logo you can't derive from `inputs/`. |
+| 8c | Scroll cinematic | **Auto-proceed.** build.html copied verbatim; build-data.js synthesized by subagent from existing artifacts. No questions. |
 | 9 | BUILD_NOTES.md | **Auto-proceed.** |
 | 10 | Self-check | **Auto-proceed** unless a check fails, then surface the failure and ask whether to fix or ship anyway. |
 
@@ -1601,6 +1610,44 @@ git add data.js
 git commit -m "Phase 7: data.js populated (N companies across pipeline/mid-market/enterprise)"
 ```
 
+### Dashboard visual defaults (v2 — required in every build)
+
+These are no longer optional polish. Every dashboard ships with all six. They come from the Lantern build (2026-06); `~/fdi/lantern-auto/dashboard.html` is the reference implementation — **copy its proven code rather than re-deriving from prose.** The template repo (`alexg207/fdi-template`) carries them going forward; if a cloned template predates v2, port these in during Phase 8.
+
+**1. Dark mode default + light/dark toggle.** Ship dark by default with a working light toggle.
+- Tokenize ALL color as CSS custom properties on `:root` (dark values) plus a `:root[data-theme="light"]{...}` override block. Never hard-code a hex/hsl outside the token set.
+- Warm palette, not blue-gray. Dark: `--bg:hsl(28 14% 7%)`, `--surface:hsl(30 13% 11%)`, `--text:hsl(40 30% 95%)`; single founder accent (Lantern used amber `hsl(36 92% 50%)` — derive the accent from the founder's brand).
+- No-FOUC head script (runs before paint) + global toggle, verbatim-portable (replace `<slug>` with the founder slug, e.g. `{{PRODUCT_SLUG}}`):
+  ```html
+  <script>(function(){try{if(localStorage.getItem("<slug>-theme")==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();
+  function toggleTheme(){var h=document.documentElement;if(h.getAttribute("data-theme")==="light"){h.removeAttribute("data-theme");try{localStorage.setItem("<slug>-theme","dark")}catch(e){}}else{h.setAttribute("data-theme","light");try{localStorage.setItem("<slug>-theme","light")}catch(e){}}}</script>
+  ```
+- Sun/moon toggle button in the topbar (`onclick="toggleTheme()"`, `aria-label="Toggle light or dark mode"`).
+- Both themes must pass WCAG AA contrast on every text/background pair. Light theme is a full re-map, not an inversion: flip `-dark`/`-deep` accent text variants to LIGHTER shades in dark mode so they stay legible on dark surfaces, and disable dark-only glow / `body::before` effects under `[data-theme="light"]`.
+
+**2. Score-quality color coding (NO RED by default).** Color the signal bar, signal number, tier chip, and tier bar by score bucket so chip color, bar fill, and the number always agree.
+- Two-tone: green = best, amber = below. Tokens: `--q-high:hsl(150 58% 52%)` / `--q-med:hsl(38 95% 56%)` plus `-d` darker text variants for the number.
+- Derive the tier FROM the score so they can never disagree: `co.tier = co._signal>=75?'high':'med';`
+- **NO RED.** Every curated target is a good signal; a red "bad" tier on a hand-picked account reads wrong. A `--q-low` (red) token may sit in the stylesheet for a future 3-tier mode, but the default is two-tone green/amber. Only add a low/red tier if the founder explicitly wants to flag weak accounts.
+
+**3. "All" tab is the default view.** Entering the dashboard must show every company in one signal-ranked scrollable grid, not 3 segment cards (the "enter and see 3 cards" flatness Lantern fixed).
+- `state.tab` defaults to `'all'`. Add an "All" tab first in the nav with a live count (`tab-count-all`).
+- `getCurrentSeg(){if(state.tab==='all')return {id:'all',companies:getAllCompaniesFlat()};return SEGMENTS.find(function(s){return s.id===state.tab;});}`
+- Segment tabs (pipeline/midmarket/enterprise) remain for filtering; "All" is the landing tab and the title-map needs an `'all'` entry.
+
+**4. Typography (3 roles, strict).**
+- Display face for the wordmark + page/section headings: **Space Grotesk** (`Space+Grotesk:wght@400;500;600;700`) — the Ember-system default since v3 (replaced Newsreader serif, 2026-07). Do NOT use Fraunces — its display-size lowercase "f" has a descending curl that reads as broken at large sizes (Lantern flagged it: "what is this F").
+- **Inter** for all UI/body.
+- Mono (**JetBrains Mono**) for NUMERIC DATA ONLY (scores, counts, the terminal readout). Never put mono on labels, eyebrows, pills, or section headers — mono-on-labels is an AI-slop tell. Section eyebrows use the same display serif as the headings, not mono.
+
+**5. Scoring consistency (stored composite == live weights).** The /100 signal shown in the dashboard MUST use the same weights as the tier/phase-7 composite. Lantern: `Math.round((0.35*pain + 0.25*trig + 0.25*res + 0.15*hir) * 20)` (Warranty 35 / Opportunity 25 / Tooling 25 / Hiring 15 — re-derive the weights per founder, and show them in a visible axis legend). Do NOT let `index.html` compute an equal-weight `(a+b+c+d)*5` total while tiers come from a weighted composite; they will disagree on the card. One weighting, applied in both places.
+
+**6. Motion + mobile.** `@media (prefers-reduced-motion: reduce)` disables fade-ups / animations. No horizontal scroll on mobile — when you add an `overflow-x:auto` rule for the tab nav, target the actual element's CLASS (Lantern bug: the rule targeted `.tab-nav` but the element's class was `.page-tabs`; `tab-nav` was only the id, so the rule did nothing).
+
+**Two gotchas that break the render silently — check both after any copy edit:**
+- **Apostrophes in single-quoted JS strings.** Inserting copy containing `'` (e.g. "group's", "Lantern's") into a single-quoted JS string literal breaks the script with NO console error — the page just hangs on "Loading...". Reword to avoid the apostrophe (or escape it), then run `node --check` on the extracted inline `<script>`.
+- **`computeJobSignal` `/careers` filter.** If the hiring axis is computed from `JOB_LISTINGS` and the filter drops generic `/careers` URLs, a company whose listings all end in a bare `/careers` scores hiring=1 (false flatline — bit West Herr + Go Auto). Use deep careers URLs (the actual posting) and seed enough verified entries to reflect the tier. (Related: F11 axis-uniformity self-check.)
+
 ### Phase 8: Customize index.html
 
 The template HTML uses `{{...}}` placeholders for everything that varies per build. Start by copying the template:
@@ -1609,7 +1656,7 @@ The template HTML uses `{{...}}` placeholders for everything that varies per bui
 cp template/index.html index.html
 ```
 
-Now substitute every `{{...}}` placeholder. The full list (10 placeholders, all enumerable via `grep -oE "\{\{[A-Z_]+\}\}" template/index.html | sort -u`):
+Now substitute every `{{...}}` placeholder. The full list (11 dashboard placeholders, all enumerable via `grep -oE "\{\{[A-Z_0-9]+\}\}" template/index.html | sort -u`):
 
 | Placeholder | Source / Value |
 |---|---|
@@ -1623,6 +1670,7 @@ Now substitute every `{{...}}` placeholder. The full list (10 placeholders, all 
 | `{{HIRING_FALLBACK_TEXT}}` | Text shown in the tooltip when a company has zero hiring signal (e.g., "No specific inference/ML hiring detected.") |
 | `{{HIRING_KEYWORD_REGEX}}` | Phase 5 artifact #2 — the literal regex (e.g., `/inference\|llm \|triton/i`) |
 | `{{SEGMENT_MIDMARKET_SUBTITLE}}` | One-sentence subtitle for the Mid-Market tab landing page (e.g., "Data-sensitive mid-market accounts with near-term BYOC inference need.") |
+| `{{PRODUCT_LOGO_SVG}}` | The founder's mark — a simple ~24×24 line-icon `<svg>`. The template ships a neutral spark as the default; replace it with something on-brand (the Lantern build used a coach-lamp lantern). Lives in `.logo-mark`; the landing reuses it. |
 
 Substitute via `sed` or directly — all should be replaced before validation. After replacement, the grep at the bottom of this phase should return zero `{{...}}` matches.
 
@@ -1652,6 +1700,79 @@ git commit -m "Phase 8: index.html customized with [vertical] axis labels and br
 
 **Manual verification:** open `index.html` in a browser. Walk through one company card end-to-end. Any string you see in the UI that says "Inference Pain" or "Data Residency" is a missed replacement.
 
+### Phase 8b (STANDARD): Landing / cover page
+
+A branded cover page that loads first and routes into the cinematic, then the dashboard. **Standard on every build** (was optional pre-v3; the three-page flow index → build → dashboard is now the deliverable). Only skip on an explicit "quick internal build, no landing" instruction. The template ships a ready scaffold: **`template/landing.html`** (a dark cover page with the proven structure). Don't build from scratch — copy it and fill its placeholders. Reference build: `alexg207/fdi-builder-v2` (Lantern, Ember design).
+
+**File convention:** copy `template/landing.html` → `index.html` (loads at `/`) and rename the dashboard `index.html` → `dashboard.html`. The landing's hero CTA links `./build.html` (the cinematic, Phase 8c); the topbar CTA and everything else link `./dashboard.html`.
+
+**Landing-only placeholders** (`grep -oE "\{\{[A-Z_0-9]+\}\}" template/landing.html | sort -u`): `{{PRODUCT_NAME}}`, `{{PRODUCT_SLUG}}`, `{{PRODUCT_LOGO_SVG}}`, `{{POSITIONING_EYEBROW}}` (Q3), `{{PRODUCT_HEADLINE}}` (Q4), `{{STAT_1_VALUE}}`–`{{STAT_4_VALUE}}` + `{{STAT_1_LABEL}}`–`{{STAT_4_LABEL}}` (Q5), `{{PRODUCT_TRANSITION_LEAD}}` (Q7), `{{ICP_DESCRIPTION}}`, `{{MARKET_SIZE_PHRASE}}`, `{{BUYER_ROLE}}`, plus the shared `{{AXIS1_LABEL}}` / `{{AXIS2_LABEL}}` (reuse the dashboard's values). The landing is dark-only by design (the cover, not the app) — no light toggle needed.
+
+**Clarifying questions the builder must answer before building (ask these first; headless: apply the parenthesized defaults and proceed):**
+1. Build the landing page at all? (default: YES — standard)
+2. Founder accent color + any brand font / logo asset? (default: keep the Ember system — cool ink canvas + ember accent + Space Grotesk — and design a simple themed line-icon like Lantern's coach-lamp lantern. Only override the accent when the founder's brand demands it, via the token values in the landing and `founder.themeAccent` in build-data.js so all three pages match)
+3. Founder positioning eyebrow — one line of what the founder IS (pull from CONTEXT.md; Lantern's was "The intelligence layer for blue-collar work")
+4. Product headline — what the founder's product does, founder-voiced (pull from CONTEXT.md)
+5. 3–4 market proof stats for the small stat cards (the founder's market, each citable — confirm wording; keep ambition stage-appropriate, no over-claimed ARR / scale)
+6. Co-brand lockup wording: "[Founder] × Primary" — confirm
+7. The transition line that pivots from the founder's product to the deliverable — confirm exact wording, e.g. "Primary built [Founder] a **custom sales-intelligence dashboard**" (bold that phrase)
+8. Audience: founders only (internal) vs shareable? (sets how much to explain and the jargon level)
+9. Theme: dark cover by default (regardless of the dashboard's last-used theme)?
+10. What does the dashboard UNLOCK for the founder's GTM? (drives the "What it unlocks" section — describe capabilities, not a prescribed sales playbook)
+
+**Structure (Lantern, proven):**
+- **Topbar:** founder mark + wordmark (serif) on the left; persistent "Enter the Dashboard" accent CTA + "[Founder] × Primary" on the right. The persistent CTA lets readers skip ahead without scrolling.
+- **Hero:** glow mark, serif wordmark, positioning eyebrow, product headline, 3–4 SMALL stat cards under the headline, a transition paragraph that sells the **custom sales-intelligence dashboard** (bold that phrase), a primary CTA + a "Skip intro" link + an animated `.scroll-cue` ("How it works ↓"). Keep the hero breathable — do NOT cram the full pitch above the fold; readers scroll, and the topbar CTA covers skip-ahead.
+- **Sections (each with a display-serif accent eyebrow, never mono):**
+  - "Your thesis, turned into a ranked target list" — what this is.
+  - "How the map is built" — numbered timeline: Define the signals → Scan the universe → Score 0 to 100 (every number cited) → Curate the shortlist.
+  - "What it unlocks" — stacked cards: Focus the team / Warm entry / Conviction / Built to scale (scalable beyond the first 10). Describe GTM leverage.
+  - "Inside the dashboard" — preview card + final Enter CTA.
+  - Footer.
+
+**Copy principles (learned the hard way on this build):**
+- Sell the DASHBOARD and what it unlocks. Don't just regurgitate facts about the founder's business, and don't tell the founder their own GTM strategy or how to win a trial.
+- Two visually + structurally distinct section layouts — "how it's built" (numbered timeline) and "what it unlocks" (stacked cards) must not overlap or read the same.
+- Section eyebrows AND headings use the display serif (NOT mono). The accent eyebrow is the same font family as the white heading; the founder/product heading can be slightly larger.
+- No em dashes (commas / periods / "..."). Human voice, not VC-deck filler. Keep scale ambition stage-appropriate (no "out of 18,000 dealerships" over-drama).
+- The entry URL always opens the landing first, with the dashboard one click away.
+
+**Validate:** `node --check` the inline `<script>`; confirm BOTH dark and light render; confirm no `{{...}}` left; open in a browser and walk hero → sections → Enter → back. Commit: `git commit -m "Phase 8b: landing / cover page"`.
+
+### Phase 8c (STANDARD, auto — no human stop): The scroll cinematic
+
+Every build ships the "watch how we built this" scroll cinematic between the landing and the dashboard. Full contract + copy rules: **`template/TEMPLATE_GUIDE.md` Section 16**. This phase is fully automatic — every decision derives from artifacts already produced; do not ask questions.
+
+**Step 1 — copy the generic files verbatim:**
+
+```bash
+cp template/build.html ./build.html          # NEVER edit this file per founder
+mkdir -p assets/logos && cp template/assets/logos/*.png assets/logos/
+```
+
+If you feel the urge to edit `build.html` for this founder, stop: the thing you want is a `narration` key or a template-repo fix, not a per-build fork.
+
+**Step 2 — generate `build-data.js`** (spawn a subagent with this task): synthesize from `config.json` (founder block), `CONTEXT.md` (voice, wow reasoning, market stats), `webset-spec.json` (process stages, axes, scan query, enrichments), and the scored companies in `data.js` / `webset-response.json`. Schema + per-key generation notes: `template/build-data-template.js`. Rules the subagent must follow:
+
+- **Voice:** confident analyst briefing the founder — never vendor pitch. Hyphens only, NEVER em dashes. Narrations ≤2 sentences each.
+- **Hero frames account QUALITY, not count.** Pattern: line 1 = scale in ("18,000 rooftops in."), line 2 = quality out ("The readiest buyers out."). Never "N accounts out."
+- **Every number and citation is REAL.** `heroStats` are the build's actual counts; `evidenceFeed` = 8-9 citations lifted from the scored companies' own `sources` (tier 1/2 mix). Fabricating either is a build-failing offense.
+- **Exactly one axis carries `wowNote`** — the founder-specific WOW signal. Its `body` is the "why this signal wins" argument from CONTEXT.md, 3-4 sentences, `<b>` allowed on the one load-bearing phrase.
+- **Keep the honest hedges:** the network stays `illustrative: true` with role-based connectors (Primary Partner / vertical Advisor / Founder / Operator Network — 3-4 roles, each owning a clean partition of the shortlist; secondary paths in `alsoReaches`) unless real Affinity/LinkedIn connector data is supplied.
+- **Theme:** omit `founder.themeAccent` (Ember default) unless Phase 8b chose a brand accent — then mirror the same values here so all three pages match.
+- **Apostrophes inside JS strings are curly (`’`)** — the known straight-quote silent-render gotcha applies to this file too.
+
+**Step 3 — capture `assets/dashboard-preview.png`** for the hero's 3D preview: screenshot the populated `dashboard.html` at 1600×1000 @2x (Playwright if available; headless CI may skip — the hero hides the preview gracefully when the file is missing, but the page is much stronger with it. If skipped, record it in BUILD_NOTES as a follow-up).
+
+**Step 4 — validate:**
+
+```bash
+node --check build-data.js
+grep -ci "<previous-founder-name>" build-data.js   # must be 0 (also grep "lantern" on non-Lantern builds)
+```
+
+Then open `build.html?act=N` for N=0..9 and confirm every scene renders with this build's data; check `axes[].weight` sums to 100 and `companies[0]` is the intended hero account (act 6 blends it). Commit: `git commit -m "Phase 8c: scroll cinematic (build.html + build-data.js)"`.
+
 ### Phase 9: Write BUILD_NOTES.md
 
 Following `template/BUILD_NOTES_TEMPLATE.md`, write `./BUILD_NOTES.md` at the repo root. Document:
@@ -1663,6 +1784,7 @@ Following `template/BUILD_NOTES_TEMPLATE.md`, write `./BUILD_NOTES.md` at the re
 - Notable copy decisions
 - Companies featured & rationale (especially if Webset returned more than were used)
 - **Webset details: ID, query, criteria, enrichment fields, completion time** (so user can refresh later)
+- **Cinematic section** (per the template's BUILD_NOTES shell): narration voice decisions, wowNote axis + why, evidenceFeed sources, themeAccent choice, dashboard-preview.png status, self-check results
 - **Reproducibility note:** point to `webset-spec.json`, `webset-response.json`, `lovelace-contacts.json` as the saved intermediates
 - Data quality notes, strong / thin / missing
 - Open questions for the user
@@ -1690,10 +1812,15 @@ grep -nE "\\{\\{[A-Z_]+\\}\\}" data.js index.html && echo "✗ Placeholders rema
 grep -n "Inference Pain\\|Data Residency" index.html | grep -v "^[[:space:]]*\\(//\\|\\*\\)" && echo "✗ Valar axis labels still in HTML" || echo "✓ Axis labels customized"
 # (skip the second check if the founder genuinely is Valar)
 
-# 3. Required output files all exist
-for f in CONTEXT.md data.js index.html BUILD_NOTES.md; do
+# 3. Required output files all exist (three-page flow + cinematic data)
+for f in CONTEXT.md data.js index.html dashboard.html build.html build-data.js BUILD_NOTES.md; do
   test -f "$f" && echo "✓ $f" || echo "✗ MISSING: $f"
 done
+
+# 3b. Cinematic checks: build-data.js parses, no previous-founder leakage,
+#     build.html untouched vs template
+node --check build-data.js && echo "✓ build-data.js parses" || echo "✗ build-data.js PARSE ERROR"
+diff -q template/build.html build.html && echo "✓ build.html verbatim" || echo "✗ build.html was edited — revert and move the change into build-data.js or the template repo"
 
 # 4. Saved intermediates exist (reproducibility)
 for f in webset-spec.json webset-response.json lovelace-contacts.json; do
@@ -1715,10 +1842,12 @@ Then walk this manual checklist:
 - [ ] `gtm_thesis` paragraphs sound like the founder, not like Claude (spot-check 3 random entries)
 - [ ] At least one verbatim founder quote (from `inputs/`) appears in CONTEXT.md or `gtm_thesis` entries
 - [ ] Webset ID and saved JSON files are documented in BUILD_NOTES.md
+- [ ] Cinematic: every `narration` key filled (no generic fallbacks shipping); hero title = quality framing; `?act=0`..`?act=9` all render; reduced-motion shows the static version; `axes[].weight` sums to 100; exactly one axis carries `wowNote`; `evidenceFeed` lines trace to real company sources
+- [ ] Landing hero CTA → `./build.html`; cinematic finale CTA + skip → `./dashboard.html` (walk the full index → build → dashboard flow once)
 
 Fix any failures before delivery.
 
-**Build artifacts cleanup (before final push to GitHub).** The build process generates several intermediate JSON files (`webset-spec.json`, `webset-response.json`, `founder-pick-research.json`, `lovelace-contacts.json`, `sumble-jobs.json`, `curated-10-list.json`, `inputs/`, `template/`) that are useful for reproducibility but clutter the deployable repo root. The dashboard the founder views is just `index.html` + `data.js` (+ optional `CONTEXT.md` and `BUILD_NOTES.md` if you want them visible). Before final commit + push, write a `.gitignore` to exclude build artifacts from future commits, OR move them to a `.build/` subdirectory so they remain version-tracked but visually out of the way:
+**Build artifacts cleanup (before final push to GitHub).** The build process generates several intermediate JSON files (`webset-spec.json`, `webset-response.json`, `founder-pick-research.json`, `lovelace-contacts.json`, `sumble-jobs.json`, `curated-10-list.json`, `inputs/`, `template/`) that are useful for reproducibility but clutter the deployable repo root. The pages the founder views are `index.html` (landing) + `build.html` + `build-data.js` + `assets/` (cinematic) + `dashboard.html` + `data.js` (+ optional `CONTEXT.md` and `BUILD_NOTES.md` if you want them visible). Before final commit + push, write a `.gitignore` to exclude build artifacts from future commits, OR move them to a `.build/` subdirectory so they remain version-tracked but visually out of the way:
 
 ```bash
 # Option A: keep artifacts tracked but tucked under .build/
@@ -1821,6 +1950,12 @@ The skill body cites failure modes from a single end-to-end test build (Valar, i
 **F10 — Estimated Spend not externally derivable.** May 5 V2 estimated annualized inference spend across 30 companies, all flagged "needs verification" because no public source cites this directly per company. The enrichment ask was structurally wrong. Pattern: when an enrichment field's evidence isn't externally available for the population you're scoring, drop the field or replace with a defensible 4-bucket enum, not "needs verification" filler.
 
 **F11 — Hiring axis flatline from JOB_LISTINGS empty cascade.** Lantern May 6 build hit basic-Exa 402 mid-build, skipping Phase 6j entirely (the Sumble + careers + LinkedIn + ATS fallback ladder all depend on basic Exa). `JOB_LISTINGS[<co>] = []` for all 10 companies → `computeJobSignal()` default returned uniform 1 → Hiring axis carried zero discriminating signal across the dashboard. Three preventions: (1) Phase 0 preflight credit-pool probe halts the build BEFORE work starts when basic-Exa credits aren't funded; (2) Phase 6j Step 0 mines the Webset's already-paid-for role-evidence enrichment for verified named role-bearers as Tier-0 hiring signal that doesn't depend on basic-Exa; (3) Phase 7 axis-uniformity self-check fails the build if any axis has ≥80% identical scores across 10 entries, catching this and any future axis flatline regardless of root cause. Lantern May 6 also exposed a separate F4 recurrence — 2 of 10 gtm_thesis entries named target-company execs ("Brian Schlise", "Marco Schooley"); the existing subjective durability check missed both. Phase 7 self-check now runs an objective `\b[A-Z][a-z]+ [A-Z][a-z]+\b` regex over `gtm_thesis` and fails any capitalized two-word name that isn't in `PRIMARY_TEAM` or a recognized firm/fund.
+
+**F12 — Silent render breakers (Lantern May 6).** Two edits broke the dashboard with no console error, page stuck on "Loading...": (1) an apostrophe in inserted copy ("group's") landing inside a single-quoted JS string literal; (2) a Python copy-edit script whose `rep()` return value wasn't assigned back, though that one crashed before writing rather than corrupting. Prevention: avoid apostrophes in copy that goes into single-quoted strings (or escape them), and run `node --check` on the extracted inline `<script>` after every copy edit. See "Dashboard visual defaults (v2)" gotchas.
+
+**F13 — Two scoring systems disagreeing (Lantern May 6).** The tier (high/med) came from the weighted phase-7 composite while the displayed /100 total used an equal-weight `(a+b+c+d)*5` — so a card could show a green "high" chip next to a number that didn't earn it. Separately, `computeJobSignal` zeroed West Herr + Go Auto because all their `JOB_LISTINGS` URLs were bare `/careers` (filtered as generic). Prevention: one weighting applied in both the composite and the live `computeSignal`; derive tier from the displayed score; use deep careers URLs. Captured as v2 defaults #2 and #5.
+
+**F14 — Display-serif "f" + mono-on-labels (Lantern May 6).** Fraunces at display size rendered a broken-looking lowercase "f" (user: "what is this F"); mono crept onto section labels and read as AI-slop. Prevention: one display face only (Space Grotesk since v3; previously Newsreader), Inter for UI, JetBrains Mono for numeric DATA ONLY — never on labels/eyebrows/headings. Captured as v2 default #4.
 
 ### What the reference build got right
 

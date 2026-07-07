@@ -122,6 +122,28 @@ Produce these before leaving Phase 5; they're consumed by Phases 6, 7, 8.
 | F9 | Source-type stacking (4 of 5 criteria read regulatory text → European-bank skew) | Phase 6e source-type tagging requires ≥3 distinct tags |
 | F10 | Field structurally not externally derivable (annualized inference spend) | Either drop the field or define a defensible 4-bucket enum |
 | F11 | Hiring axis flatline from JOB_LISTINGS empty cascade (Lantern May 6: basic-Exa 402 → Phase 6j skipped → uniform-1 Hiring) | Phase 0 preflight credit-pool probe + Phase 6j Step 0 (mine Webset role-evidence first) + Phase 7 axis-uniformity self-check (G2) |
+| F12 | Silent render breaker — apostrophe in single-quoted JS string → page stuck "Loading...", no console error | Avoid/escape apostrophes in copy; `node --check` the inline `<script>` after every copy edit |
+| F13 | Two scoring systems disagreeing (tier from weighted composite vs displayed equal-weight total); `computeJobSignal` zeroed companies whose listings were bare `/careers` | One weighting in both composite + live `computeSignal`; derive tier from displayed score; deep careers URLs (v2 defaults #2, #5) |
+| F14 | Fraunces display "f" looked broken; mono crept onto labels (AI-slop) | Space Grotesk display (v3; was Newsreader) / Inter UI / JetBrains Mono for numeric DATA ONLY (v2 default #4) |
+
+---
+
+## Dashboard visual defaults (v2 — required every build)
+
+Copy proven code from `~/fdi/lantern-auto/dashboard.html`. Full prose: SKILL.md "Dashboard visual defaults (v2)" before Phase 8.
+
+| # | Default | Test |
+|---|---|---|
+| 1 | Dark mode default + light toggle | tokenized `:root` + `[data-theme="light"]`; no-FOUC head script; sun/moon button; both pass WCAG AA |
+| 2 | Score-quality color coding, NO RED | green=best / amber=below; tier derived from score (`>=75?'high':'med'`); bar + number + chip agree |
+| 3 | "All" tab is the default view | `state.tab='all'`; All tab first w/ live count; enter = all cards ranked, not 3 |
+| 4 | Type: display face / Inter UI / mono DATA-ONLY | Space Grotesk since v3 (was Newsreader; not Fraunces); never mono on labels/eyebrows/headings |
+| 5 | Stored composite == live weights | one weighting both places; visible axis legend |
+| 6 | reduced-motion + no mobile h-scroll | `@media (prefers-reduced-motion)`; `overflow-x` rule targets nav's real class |
+
+**Landing/cover page = Phase 8b (STANDARD since v3).** Build it by default: landing = `index.html`, dashboard moves to `dashboard.html`. Structure + copy principles in SKILL.md Phase 8b. Copy principle: sell the dashboard + what it unlocks, don't regurgitate the founder's business or coach their GTM; no em dashes.
+
+**Scroll cinematic = Phase 8c (STANDARD since v3, auto).** `template/build.html` copied VERBATIM + `build-data.js` synthesized by subagent from config/CONTEXT/webset-spec/scored companies (schema: `template/build-data-template.js`; contract + copy rules: TEMPLATE_GUIDE Section 16). Hero frames account QUALITY not count; one axis carries `wowNote`; evidenceFeed = real citations only; network stays role-illustrative. Final flow every build: index (landing) -> build.html (cinematic) -> dashboard.html, all Ember.
 
 ---
 
@@ -149,7 +171,9 @@ Phase 6j: Sumble jobs gathered (N/M companies covered)
 Phase 6k: Lovelace contacts gathered (N profiles across M companies)
 Phase 6m: Founder-pick research saved (N companies)
 Phase 7: data.js populated (N companies × 4 axes × 3 sections)
-Phase 8: index.html customized for [vertical] axis labels and branding
+Phase 8: index.html customized for [vertical] axis labels and branding (+ v2 defaults: dark/light, color-coding, All tab)
+Phase 8b: landing / cover page (standard)
+Phase 8c: scroll cinematic (build.html + build-data.js)
 Phase 9: BUILD_NOTES.md documenting structural decisions
 Phase 10: self-check fixes (if needed)
 ```
