@@ -58,9 +58,8 @@ The skill operates inside a per-founder Git repo at `~/fdi/<founder-slug>/`. Lay
 ├── founder-pick-research.json           # Saved Phase 6m — directed research for founder-named picks
 ├── CONTEXT.md                           # Generated Phase 4
 ├── data.js                              # Generated Phase 7 (overwrites template's)
-├── index.html                           # Generated Phase 8b — the landing/cover page (the dashboard generated in Phase 8 is renamed dashboard.html)
+├── index.html                           # Phase 8c — the scroll walkthrough (entry page), copied VERBATIM from template/build.html (never edited per founder)
 ├── dashboard.html                       # The dashboard app (Phase 8; dark default + light toggle + All tab + score color-coding)
-├── build.html                           # Phase 8c — the scroll cinematic, copied VERBATIM from template (never edited per founder)
 ├── build-data.js                        # Phase 8c — the cinematic's only founder-specific input (schema: template/build-data-template.js)
 ├── assets/logos/                        # Phase 8c — tool logos for the cinematic's process act (copied from template)
 ├── assets/dashboard-preview.png         # Phase 8c — screenshot of THIS build's dashboard for the cinematic hero
@@ -105,8 +104,7 @@ Output: 4 files at the repo root, plus 3 saved JSON intermediates:
 - `index.html`, the dashboard — branded, signal-labeled, hiring-regex-tuned for this vertical, and shipping the v2 defaults (dark mode default + light toggle, score-quality color-coding, "All" tab as the default view). See "Dashboard visual defaults (v2)" before Phase 8.
 - `BUILD_NOTES.md`, documents the structural choices you made
 - `webset-spec.json`, `webset-response.json`, `lovelace-contacts.json`, saved intermediates for reproducibility
-- a landing / cover page (Phase 8b, STANDARD) — the landing ships as `index.html` and the dashboard moves to `dashboard.html`
-- the scroll cinematic (Phase 8c, STANDARD) — `build.html` copied verbatim from the template + a generated `build-data.js` + `assets/`. Final flow every build ships: **index (landing) → build.html (cinematic) → dashboard.html**, all in the Ember design system.
+- the scroll walkthrough (Phase 8c, STANDARD) — `template/build.html` copied verbatim as the build's **`index.html`** + a generated `build-data.js` + `assets/`. Final flow every build ships: **index.html (walkthrough, two-beat founder opener) → dashboard.html**, all in the Ember design system. A separate landing page (Phase 8b) is optional and off by default.
 
 This is an 11-phase build (Phase 0–10), plus the standard landing (Phase 8b) and cinematic (Phase 8c). Do not skip phases. Do not skip ahead. Each phase ends with a `git commit` so the build has clean version history.
 
@@ -233,8 +231,8 @@ A "minor" decision is one where:
 | 6m | Founder-pick research | **Auto-proceed.** |
 | 7 | data.js population | **Auto-proceed.** Subagent runs the heavy lift; main thread stays out. |
 | 8 | index.html customize | **Auto-proceed.** |
-| 8b | Landing page | **Auto-proceed with defaults** (build it; Ember system). Stop only if the founder brand demands a custom accent/logo you can't derive from `inputs/`. |
-| 8c | Scroll cinematic | **Auto-proceed.** build.html copied verbatim; build-data.js synthesized by subagent from existing artifacts. No questions. |
+| 8b | Landing page | **Skip by default** (walkthrough is the entry). Build only on explicit ask. |
+| 8c | Scroll walkthrough (entry) | **Auto-proceed.** template/build.html copied verbatim as index.html; build-data.js synthesized by subagent. No questions. |
 | 9 | BUILD_NOTES.md | **Auto-proceed.** |
 | 10 | Self-check | **Auto-proceed** unless a check fails, then surface the failure and ask whether to fix or ship anyway. |
 
@@ -1700,16 +1698,16 @@ git commit -m "Phase 8: index.html customized with [vertical] axis labels and br
 
 **Manual verification:** open `index.html` in a browser. Walk through one company card end-to-end. Any string you see in the UI that says "Inference Pain" or "Data Residency" is a missed replacement.
 
-### Phase 8b (STANDARD): Landing / cover page
+### Phase 8b (OPTIONAL, default OFF): Landing / cover page
 
-A branded cover page that loads first and routes into the cinematic, then the dashboard. **Standard on every build** (was optional pre-v3; the three-page flow index → build → dashboard is now the deliverable). Only skip on an explicit "quick internal build, no landing" instruction. The template ships a ready scaffold: **`template/landing.html`** (a dark cover page with the proven structure). Don't build from scratch — copy it and fill its placeholders. Reference build: `alexg207/fdi-builder-v2` (Lantern, Ember design).
+A branded cover page. **Optional and off by default since v3.1** — the walkthrough (Phase 8c) opens on the founder itself, so a separate cover is redundant. Build it only on an explicit ask. The template ships a ready scaffold: **`template/landing.html`** (a dark cover page with the proven structure). Don't build from scratch — copy it and fill its placeholders. Reference build: `alexg207/fdi-builder-v2` (Lantern, Ember design).
 
-**File convention:** copy `template/landing.html` → `index.html` (loads at `/`) and rename the dashboard `index.html` → `dashboard.html`. The landing's hero CTA links `./build.html` (the cinematic, Phase 8c); the topbar CTA and everything else link `./dashboard.html`.
+**File convention when explicitly requested:** the landing takes `/landing.html` (the walkthrough owns `index.html`); link its CTAs to `./` and `./dashboard.html`.
 
 **Landing-only placeholders** (`grep -oE "\{\{[A-Z_0-9]+\}\}" template/landing.html | sort -u`): `{{PRODUCT_NAME}}`, `{{PRODUCT_SLUG}}`, `{{PRODUCT_LOGO_SVG}}`, `{{POSITIONING_EYEBROW}}` (Q3), `{{PRODUCT_HEADLINE}}` (Q4), `{{STAT_1_VALUE}}`–`{{STAT_4_VALUE}}` + `{{STAT_1_LABEL}}`–`{{STAT_4_LABEL}}` (Q5), `{{PRODUCT_TRANSITION_LEAD}}` (Q7), `{{ICP_DESCRIPTION}}`, `{{MARKET_SIZE_PHRASE}}`, `{{BUYER_ROLE}}`, plus the shared `{{AXIS1_LABEL}}` / `{{AXIS2_LABEL}}` (reuse the dashboard's values). The landing is dark-only by design (the cover, not the app) — no light toggle needed.
 
-**Clarifying questions the builder must answer before building (ask these first; headless: apply the parenthesized defaults and proceed):**
-1. Build the landing page at all? (default: YES — standard)
+**Clarifying questions the builder must answer before building (ask these first; headless: skip the landing entirely unless the dispatch asked for it):**
+1. Build the landing page at all? (default: NO — the walkthrough is the entry)
 2. Founder accent color + any brand font / logo asset? (default: keep the Ember system — cool ink canvas + ember accent + Space Grotesk — and design a simple themed line-icon like Lantern's coach-lamp lantern. Only override the accent when the founder's brand demands it, via the token values in the landing and `founder.themeAccent` in build-data.js so all three pages match)
 3. Founder positioning eyebrow — one line of what the founder IS (pull from CONTEXT.md; Lantern's was "The intelligence layer for blue-collar work")
 4. Product headline — what the founder's product does, founder-voiced (pull from CONTEXT.md)
@@ -1739,22 +1737,24 @@ A branded cover page that loads first and routes into the cinematic, then the da
 
 **Validate:** `node --check` the inline `<script>`; confirm BOTH dark and light render; confirm no `{{...}}` left; open in a browser and walk hero → sections → Enter → back. Commit: `git commit -m "Phase 8b: landing / cover page"`.
 
-### Phase 8c (STANDARD, auto — no human stop): The scroll cinematic
+### Phase 8c (STANDARD, auto — no human stop): The scroll walkthrough — the ENTRY page
 
-Every build ships the "watch how we built this" scroll cinematic between the landing and the dashboard. Full contract + copy rules: **`template/TEMPLATE_GUIDE.md` Section 16**. This phase is fully automatic — every decision derives from artifacts already produced; do not ask questions.
+Every build ships two pages: **index.html (the walkthrough) → dashboard.html.** The walkthrough opens on the founder (two-beat hero: founder-first intro with their logoSvg floating in 3D behind, then the dashboard pivot), so no separate landing is needed. Full contract + copy rules: **`template/TEMPLATE_GUIDE.md` Section 16**. This phase is fully automatic — every decision derives from artifacts already produced; do not ask questions.
 
 **Step 1 — copy the generic files verbatim:**
 
 ```bash
-cp template/build.html ./build.html          # NEVER edit this file per founder
+mv index.html dashboard.html                 # the dashboard moves off the root
+cp template/build.html ./index.html          # the walkthrough IS the entry — NEVER edit per founder
 mkdir -p assets/logos && cp template/assets/logos/*.png assets/logos/
 ```
 
-If you feel the urge to edit `build.html` for this founder, stop: the thing you want is a `narration` key or a template-repo fix, not a per-build fork.
+If you feel the urge to edit the walkthrough HTML for this founder, stop: the thing you want is a `narration` key or a template-repo fix, not a per-build fork.
 
 **Step 2 — generate `build-data.js`** (spawn a subagent with this task): synthesize from `config.json` (founder block), `CONTEXT.md` (voice, wow reasoning, market stats), `webset-spec.json` (process stages, axes, scan query, enrichments), and the scored companies in `data.js` / `webset-response.json`. Schema + per-key generation notes: `template/build-data-template.js`. Rules the subagent must follow:
 
 - **Voice:** confident analyst briefing the founder — never vendor pitch. Hyphens only, NEVER em dashes. Narrations ≤2 sentences each.
+- **`narration.introHeadline`** = the founder's product headline for beat 1 (accent spans allowed), derived from CONTEXT.md positioning; falls back to `founder.oneLine`.
 - **Hero frames account QUALITY, not count.** Pattern: line 1 = scale in ("18,000 rooftops in."), line 2 = quality out ("The readiest buyers out."). Never "N accounts out."
 - **Every number and citation is REAL.** `heroStats` are the build's actual counts; `evidenceFeed` = 8-9 citations lifted from the scored companies' own `sources` (tier 1/2 mix). Fabricating either is a build-failing offense.
 - **Exactly one axis carries `wowNote`** — the founder-specific WOW signal. Its `body` is the "why this signal wins" argument from CONTEXT.md, 3-4 sentences, `<b>` allowed on the one load-bearing phrase.
@@ -1771,7 +1771,7 @@ node --check build-data.js
 grep -ci "<previous-founder-name>" build-data.js   # must be 0 (also grep "lantern" on non-Lantern builds)
 ```
 
-Then open `build.html?act=N` for N=0..9 and confirm every scene renders with this build's data; check `axes[].weight` sums to 100 and `companies[0]` is the intended hero account (act 6 blends it). Commit: `git commit -m "Phase 8c: scroll cinematic (build.html + build-data.js)"`.
+Then open `index.html?act=N` for N=0..9 and confirm every scene renders with this build's data; check `axes[].weight` sums to 100 and `companies[0]` is the intended hero account (act 6 blends it). Commit: `git commit -m "Phase 8c: scroll walkthrough entry (index.html + build-data.js)"`.
 
 ### Phase 9: Write BUILD_NOTES.md
 
@@ -1813,14 +1813,14 @@ grep -n "Inference Pain\\|Data Residency" index.html | grep -v "^[[:space:]]*\\(
 # (skip the second check if the founder genuinely is Valar)
 
 # 3. Required output files all exist (three-page flow + cinematic data)
-for f in CONTEXT.md data.js index.html dashboard.html build.html build-data.js BUILD_NOTES.md; do
+for f in CONTEXT.md data.js index.html dashboard.html build-data.js BUILD_NOTES.md; do
   test -f "$f" && echo "✓ $f" || echo "✗ MISSING: $f"
 done
 
 # 3b. Cinematic checks: build-data.js parses, no previous-founder leakage,
 #     build.html untouched vs template
 node --check build-data.js && echo "✓ build-data.js parses" || echo "✗ build-data.js PARSE ERROR"
-diff -q template/build.html build.html && echo "✓ build.html verbatim" || echo "✗ build.html was edited — revert and move the change into build-data.js or the template repo"
+diff -q template/build.html index.html && echo "✓ walkthrough verbatim" || echo "✗ index.html was edited — revert and move the change into build-data.js or the template repo"
 
 # 4. Saved intermediates exist (reproducibility)
 for f in webset-spec.json webset-response.json lovelace-contacts.json; do
@@ -1843,11 +1843,11 @@ Then walk this manual checklist:
 - [ ] At least one verbatim founder quote (from `inputs/`) appears in CONTEXT.md or `gtm_thesis` entries
 - [ ] Webset ID and saved JSON files are documented in BUILD_NOTES.md
 - [ ] Cinematic: every `narration` key filled (no generic fallbacks shipping); hero title = quality framing; `?act=0`..`?act=9` all render; reduced-motion shows the static version; `axes[].weight` sums to 100; exactly one axis carries `wowNote`; `evidenceFeed` lines trace to real company sources
-- [ ] Landing hero CTA → `./build.html`; cinematic finale CTA + skip → `./dashboard.html` (walk the full index → build → dashboard flow once)
+- [ ] Walkthrough finale CTA + skip link → `./dashboard.html` (walk index → dashboard once); beat 1 shows the founder's own mark floating, beat 2 pivots to the dashboard
 
 Fix any failures before delivery.
 
-**Build artifacts cleanup (before final push to GitHub).** The build process generates several intermediate JSON files (`webset-spec.json`, `webset-response.json`, `founder-pick-research.json`, `lovelace-contacts.json`, `sumble-jobs.json`, `curated-10-list.json`, `inputs/`, `template/`) that are useful for reproducibility but clutter the deployable repo root. The pages the founder views are `index.html` (landing) + `build.html` + `build-data.js` + `assets/` (cinematic) + `dashboard.html` + `data.js` (+ optional `CONTEXT.md` and `BUILD_NOTES.md` if you want them visible). Before final commit + push, write a `.gitignore` to exclude build artifacts from future commits, OR move them to a `.build/` subdirectory so they remain version-tracked but visually out of the way:
+**Build artifacts cleanup (before final push to GitHub).** The build process generates several intermediate JSON files (`webset-spec.json`, `webset-response.json`, `founder-pick-research.json`, `lovelace-contacts.json`, `sumble-jobs.json`, `curated-10-list.json`, `inputs/`, `template/`) that are useful for reproducibility but clutter the deployable repo root. The pages the founder views are `index.html` (walkthrough) + `build-data.js` + `assets/` + `dashboard.html` + `data.js` (+ optional `CONTEXT.md` and `BUILD_NOTES.md` if you want them visible). Before final commit + push, write a `.gitignore` to exclude build artifacts from future commits, OR move them to a `.build/` subdirectory so they remain version-tracked but visually out of the way:
 
 ```bash
 # Option A: keep artifacts tracked but tucked under .build/

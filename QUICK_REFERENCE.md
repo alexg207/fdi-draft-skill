@@ -141,9 +141,9 @@ Copy proven code from `~/fdi/lantern-auto/dashboard.html`. Full prose: SKILL.md 
 | 5 | Stored composite == live weights | one weighting both places; visible axis legend |
 | 6 | reduced-motion + no mobile h-scroll | `@media (prefers-reduced-motion)`; `overflow-x` rule targets nav's real class |
 
-**Landing/cover page = Phase 8b (STANDARD since v3).** Build it by default: landing = `index.html`, dashboard moves to `dashboard.html`. Structure + copy principles in SKILL.md Phase 8b. Copy principle: sell the dashboard + what it unlocks, don't regurgitate the founder's business or coach their GTM; no em dashes.
+**Landing/cover page = Phase 8b (OPTIONAL, off by default since v3.1).** The walkthrough is the entry page; build a landing only on explicit ask.
 
-**Scroll cinematic = Phase 8c (STANDARD since v3, auto).** `template/build.html` copied VERBATIM + `build-data.js` synthesized by subagent from config/CONTEXT/webset-spec/scored companies (schema: `template/build-data-template.js`; contract + copy rules: TEMPLATE_GUIDE Section 16). Hero frames account QUALITY not count; one axis carries `wowNote`; evidenceFeed = real citations only; network stays role-illustrative. Final flow every build: index (landing) -> build.html (cinematic) -> dashboard.html, all Ember.
+**Scroll walkthrough = Phase 8c (STANDARD, auto) — the ENTRY page.** `template/build.html` copied VERBATIM as the build's `index.html` + `build-data.js` synthesized by subagent from config/CONTEXT/webset-spec/scored companies (schema: `template/build-data-template.js`; contract + copy rules: TEMPLATE_GUIDE Section 16). Hero frames account QUALITY not count; one axis carries `wowNote`; evidenceFeed = real citations only; network stays role-illustrative. Final flow every build: index.html (walkthrough, two-beat founder opener w/ floating 3D founder mark) -> dashboard.html, all Ember.
 
 ---
 
@@ -172,8 +172,8 @@ Phase 6k: Lovelace contacts gathered (N profiles across M companies)
 Phase 6m: Founder-pick research saved (N companies)
 Phase 7: data.js populated (N companies × 4 axes × 3 sections)
 Phase 8: index.html customized for [vertical] axis labels and branding (+ v2 defaults: dark/light, color-coding, All tab)
-Phase 8b: landing / cover page (standard)
-Phase 8c: scroll cinematic (build.html + build-data.js)
+Phase 8b: landing / cover page (optional, off by default)
+Phase 8c: scroll walkthrough entry (index.html + build-data.js)
 Phase 9: BUILD_NOTES.md documenting structural decisions
 Phase 10: self-check fixes (if needed)
 ```
