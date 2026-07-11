@@ -61,7 +61,7 @@ The skill operates inside a per-founder Git repo at `~/fdi/<founder-slug>/`. Lay
 ├── index.html                           # Phase 8c — the scroll walkthrough (entry page), copied VERBATIM from template/build.html (never edited per founder)
 ├── dashboard.html                       # The dashboard app (Phase 8; dark default + light toggle + All tab + score color-coding)
 ├── build-data.js                        # Phase 8c — the cinematic's only founder-specific input (schema: template/build-data-template.js)
-├── assets/logos/                        # Phase 8c — tool logos for the cinematic's process act (copied from template)
+├── assets/                              # Phase 8c — FULL copy of template/assets (logos/ + primary-lockup.svg)
 ├── assets/dashboard-preview.png         # Phase 8c — screenshot of THIS build's dashboard for the cinematic hero
 ├── BUILD_NOTES.md                       # Generated Phase 9
 └── .git/                                # Initialized Phase 0; commit per phase
@@ -1462,11 +1462,13 @@ cp template/data.js data.js
 
 1. **Pick the right segment**, based on signal strength + ICP match (Pipeline if signed/active, Mid-Market for Stage 1 ICP, Enterprise for Stage 2).
 
-2. **Set `tier`**, `'high'` if all axes scored 4+ AND the company is signed/in-pipeline OR has a strong warm intro; `'med'` for strong ICP fit with mixed axis scores; `'low'` for speculative pattern-matches without warm path. With the 10-company target, aim for roughly **5 high / 4 med / 1 low**. If you have no `'low'` candidates worth including, drop the slot — better 9 entries you'd demo than 10 with one weak. If everything is `'high'`, tiers carry no information; force at least 2-3 into `'med'` based on which had less verifiable enrichment data.
+2. **Break composite ties on the shortlist.** Whole-point 0-5 axes tie easily (17/20 = 85 five times on a real build - looks fabricated to a founder). After computing composites, if 2+ companies in the top half tie, add a `composite: <int>` override per tied company (the dashboard scorer honors it) spreading them by evidence strength - strongest cited immaturity/wow artifact highest. Keep the spread inside the tier (+/-3), preserve axis scores unchanged, and note the tiebreak rationale in BUILD_NOTES.
 
-3. **Write `subtitle` in V1 pattern**, *[what the company is], [why-they-fit-the-founder phrase], [founder relationship status]*. One sentence, dense, signal-rich. See TEMPLATE_GUIDE.md Section 9.1.
+3. **Set `tier`**, `'high'` if all axes scored 4+ AND the company is signed/in-pipeline OR has a strong warm intro; `'med'` for strong ICP fit with mixed axis scores; `'low'` for speculative pattern-matches without warm path. With the 10-company target, aim for roughly **5 high / 4 med / 1 low**. If you have no `'low'` candidates worth including, drop the slot — better 9 entries you'd demo than 10 with one weak. If everything is `'high'`, tiers carry no information; force at least 2-3 into `'med'` based on which had less verifiable enrichment data.
 
-4. **Write `overview` in V1 pattern**, 3-5 sentences that name the company's position in the founder's market story, specify the data sensitivity in concrete terms (not abstract), and connect the company to a category-level reference. See Section 9.2.
+4. **Write `subtitle` in V1 pattern**, *[what the company is], [why-they-fit-the-founder phrase], [founder relationship status]*. One sentence, dense, signal-rich. See TEMPLATE_GUIDE.md Section 9.1.
+
+5. **Write `overview` in V1 pattern**, 3-5 sentences that name the company's position in the founder's market story, specify the data sensitivity in concrete terms (not abstract), and connect the company to a category-level reference. See Section 9.2.
 
 5. **Fill the 3 sections** (Profile / `[SECTION_2_LABEL]` / GTM Strategy) directly from Webset enrichments. The `[SECTION_2_LABEL]` was chosen in Phase 5 per the founder's vertical. Locked field sets — do NOT add fields beyond these:
    - **Profile (5 rows exactly)**: Industry, Revenue, Employees, Cloud Provider, AI Maturity. Do not add Founded, Headquarters, "Valar Status" (or any "[Founder] Status"), Stage, ICP Tier, or Business Type — those duplicate information shown elsewhere. The relationship status lives in the `tags` array as a brand-color chip, not as a profile row. See Section 9.8.
@@ -1752,8 +1754,11 @@ Every build ships two pages: **index.html (the walkthrough) → dashboard.html.*
 ```bash
 mv index.html dashboard.html                 # the dashboard moves off the root
 cp template/build.html ./index.html          # the walkthrough IS the entry — NEVER edit per founder
-mkdir -p assets/logos && cp template/assets/logos/*.png assets/logos/
+mkdir -p assets && cp -R template/assets/. assets/   # EVERYTHING — logos AND primary-lockup.svg
+test -f assets/primary-lockup.svg || echo "BUILD ERROR: primary-lockup.svg missing — topbar, intro, and network hub all render broken images without it"
 ```
+
+Copy the WHOLE `template/assets/` tree, never cherry-pick: two real builds shipped with broken Primary lockups because only `logos/` was copied.
 
 If you feel the urge to edit the walkthrough HTML for this founder, stop: the thing you want is a `narration` key or a template-repo fix, not a per-build fork.
 
@@ -1762,6 +1767,7 @@ If you feel the urge to edit the walkthrough HTML for this founder, stop: the th
 - **Voice:** confident analyst briefing the founder — never vendor pitch. Hyphens only, NEVER em dashes. Narrations ≤2 sentences each.
 - **`narration.introHeadline`** = the founder's product headline for beat 1 (accent spans allowed), derived from CONTEXT.md positioning; falls back to `founder.oneLine`.
 - **Hero frames account QUALITY, not count.** Pattern: line 1 = scale in ("18,000 rooftops in."), line 2 = quality out ("The readiest buyers out."). Never "N accounts out."
+- **Each heroTitle line must fit on ONE rendered line: 28 characters max including spaces.** Longer lines wrap and orphan a word ("out." alone on its own line) - a real build shipped that way. Count the characters.
 - **Every number and citation is REAL.** `heroStats` are the build's actual counts; `evidenceFeed` = 8-9 citations lifted from the scored companies' own `sources` (tier 1/2 mix). Fabricating either is a build-failing offense.
 - **Exactly one axis carries `wowNote`** — the founder-specific WOW signal. Its `body` is the "why this signal wins" argument from CONTEXT.md, 3-4 sentences, `<b>` allowed on the one load-bearing phrase.
 - **Keep the honest hedges:** the network stays `illustrative: true` with role-based connectors (Primary Partner / vertical Advisor / Founder / Operator Network — 3-4 roles, each owning a clean partition of the shortlist; secondary paths in `alsoReaches`) unless real Affinity/LinkedIn connector data is supplied.
