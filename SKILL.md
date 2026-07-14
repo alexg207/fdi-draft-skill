@@ -189,6 +189,8 @@ These rules apply to every piece of text you write into CONTEXT.md, data.js fiel
 
 17. **`opp_reason` must acknowledge a hurdle when `signal_score` ≤ 4.** Honest weakness signals credibility. The Valar V1 Mastercard pattern is the model: `opp_reason` flags "Mastercard has deep in-house expertise, so Valar needs to demonstrate clear value beyond what their team has built" alongside the opportunity. When `signal_score` is 4 or below, the `opp_reason` text MUST contain at least one challenge-acknowledgment phrase: a hurdle, an in-house competing capability, a procurement obstacle, a competitor relationship, or a timing risk. Phase 7 self-check fails the entry if `signal_score ≤ 4` and `opp_reason` reads uniformly bullish. (Reference build → Plural FDI's `opp_reason` fields were uniformly positive across all 10 companies; honesty leaked into `distress_reason` instead of where it belonged.)
 
+18. **Warmth copy tone — confident partnership, never self-deprecating.** The three founder-facing warmth strings (`narration.introWarmth`, `narration.finaleWarmth`, and the dashboard's `{{FEEDBACK_CARD_BODY}}`) frame the deliverable as a capable partner's strong first pass and the start of a working relationship — never an apology. **Banned:** "we gave it our best shot", "hopefully we got it right", "we tried our best", "sorry if we missed", or any phrasing that undersells the research. The feedback ask is explicit and two-sided (what they love AND where we can improve), and closes on collaboration ("make this even stronger together" spirit). The three strings play **distinct rhetorical roles** and must not repeat each other: `introWarmth` = "this is our deep dive into your world, excited to keep exploring it together" (opens the walkthrough); `finaleWarmth` = "this is the start of a conversation, looking forward to continuing the research together" (closes the walkthrough cinematic); `{{FEEDBACK_CARD_BODY}}` = the explicit feedback ask (the dashboard outro, where the founder has just seen the real intelligence). (Reference build → Frost Security, per Jason Gelman's 2026-07 feedback.)
+
 ---
 
 ## Interaction model
@@ -1462,7 +1464,7 @@ cp template/data.js data.js
 
 1. **Pick the right segment**, based on signal strength + ICP match (Pipeline if signed/active, Mid-Market for Stage 1 ICP, Enterprise for Stage 2).
 
-2. **Break composite ties on the shortlist.** Whole-point 0-5 axes tie easily (17/20 = 85 five times on a real build - looks fabricated to a founder). After computing composites, if 2+ companies in the top half tie, add a `composite: <int>` override per tied company (the dashboard scorer honors it) spreading them by evidence strength - strongest cited immaturity/wow artifact highest. Keep the spread inside the tier (+/-3), preserve axis scores unchanged, and note the tiebreak rationale in BUILD_NOTES.
+2. **Break composite ties on the shortlist.** Whole-point 0-5 axes tie easily (17/20 = 85 five times on a real build - looks fabricated to a founder). After computing composites, if 2+ companies tie, add a `composite: <int>` override per tied company (the dashboard scorer honors it, clamped 0-100). Rank the tied group by a total order so it's reproducible: (1) strongest cited immaturity/wow artifact highest (primary/first-party citation beats inferred), (2) larger cited scale, (3) more total sources, (4) alphabetical as the final fallback. Overrides must be **collision-free and order-preserving across the whole board**: pick distinct integers strictly between the nearest distinct composites above and below the tied cluster so none equals another account's score and none leapfrogs a higher account or drops under a lower one (stay inside the tier, ~+/-3; if the integer gap is too tight for the count, widen it by also overriding the bracketing non-tied accounts). Preserve axis scores unchanged, carry the same numbers into `build-data.js` `companies[].score` in Phase 8c, and note the tiebreak rationale in BUILD_NOTES. Use this for genuine ties only - never to rescore a non-tied account.
 
 3. **Set `tier`**, `'high'` if all axes scored 4+ AND the company is signed/in-pipeline OR has a strong warm intro; `'med'` for strong ICP fit with mixed axis scores; `'low'` for speculative pattern-matches without warm path. With the 10-company target, aim for roughly **5 high / 4 med / 1 low**. If you have no `'low'` candidates worth including, drop the slot — better 9 entries you'd demo than 10 with one weak. If everything is `'high'`, tiers carry no information; force at least 2-3 into `'med'` based on which had less verifiable enrichment data.
 
@@ -1646,7 +1648,7 @@ These are no longer optional polish. Every dashboard ships with all six. They co
 - **Inter** for all UI/body.
 - Mono (**JetBrains Mono**) for NUMERIC DATA ONLY (scores, counts, the terminal readout). Never put mono on labels, eyebrows, pills, or section headers — mono-on-labels is an AI-slop tell. Section eyebrows use the same display serif as the headings, not mono.
 
-**5. Scoring consistency (stored composite == live weights).** The /100 signal shown in the dashboard MUST use the same weights as the tier/phase-7 composite. Lantern: `Math.round((0.35*pain + 0.25*trig + 0.25*res + 0.15*hir) * 20)` (Warranty 35 / Opportunity 25 / Tooling 25 / Hiring 15 — re-derive the weights per founder, and show them in a visible axis legend). Do NOT let `index.html` compute an equal-weight `(a+b+c+d)*5` total while tiers come from a weighted composite; they will disagree on the card. One weighting, applied in both places.
+**5. Scoring consistency (stored composite == live weights).** The /100 signal shown in the dashboard MUST use the same weights as the tier/phase-7 composite. Lantern: `Math.round((0.35*pain + 0.25*trig + 0.25*res + 0.15*hir) * 20)` (Warranty 35 / Opportunity 25 / Tooling 25 / Hiring 15 — re-derive the weights per founder, and show them in a visible axis legend). Do NOT let `index.html` compute an equal-weight `(a+b+c+d)*5` total while tiers come from a weighted composite; they will disagree on the card. One weighting, applied in both places. **Corollary — ties:** whole-point axes make composite collisions routine. When two or more accounts land on the same composite, break the tie with an explicit `composite: <n>` override per company in data.js (evidence strength decides the order — see the Phase 7 composite tie-break step); `computeSignal()` returns the override first, so card, tooltip, and tier stay consistent.
 
 **6. Motion + mobile.** `@media (prefers-reduced-motion: reduce)` disables fade-ups / animations. No horizontal scroll on mobile — when you add an `overflow-x:auto` rule for the tab nav, target the actual element's CLASS (Lantern bug: the rule targeted `.tab-nav` but the element's class was `.page-tabs`; `tab-nav` was only the id, so the rule did nothing).
 
@@ -1662,7 +1664,7 @@ The template HTML uses `{{...}}` placeholders for everything that varies per bui
 cp template/index.html index.html
 ```
 
-Now substitute every `{{...}}` placeholder. The full list (11 dashboard placeholders, all enumerable via `grep -oE "\{\{[A-Z_0-9]+\}\}" template/index.html | sort -u`):
+Now substitute every `{{...}}` placeholder. The full list (12 dashboard placeholders, all enumerable via `grep -oE "\{\{[A-Z_0-9]+\}\}" template/index.html | sort -u`):
 
 | Placeholder | Source / Value |
 |---|---|
@@ -1677,6 +1679,7 @@ Now substitute every `{{...}}` placeholder. The full list (11 dashboard placehol
 | `{{HIRING_KEYWORD_REGEX}}` | Phase 5 artifact #2 — the literal regex (e.g., `/inference\|llm \|triton/i`) |
 | `{{SEGMENT_MIDMARKET_SUBTITLE}}` | One-sentence subtitle for the Mid-Market tab landing page (e.g., "Data-sensitive mid-market accounts with near-term BYOC inference need.") |
 | `{{PRODUCT_LOGO_SVG}}` | The founder's mark — a simple ~24×24 line-icon `<svg>`. The template ships a neutral spark as the default; replace it with something on-brand (the Lantern build used a coach-lamp lantern). Lives in `.logo-mark`; the landing reuses it. |
+| `{{FEEDBACK_CARD_BODY}}` | 2-3 sentence body for the dashboard's bottom "How'd we do?" outro card, per founder. Per Output Style Rule #18: acknowledge we're early in the founder's world, ask explicitly what they love and where we can improve, close on making it stronger together. Distinct copy from the walkthrough's `introWarmth`/`finaleWarmth` — do not repeat those lines. |
 
 Substitute via `sed` or directly — all should be replaced before validation. After replacement, the grep at the bottom of this phase should return zero `{{...}}` matches.
 
@@ -1773,6 +1776,9 @@ If you feel the urge to edit the walkthrough HTML for this founder, stop: the th
 - **Keep the honest hedges:** the network stays `illustrative: true` with role-based connectors (Primary Partner / vertical Advisor / Founder / Operator Network — 3-4 roles, each owning a clean partition of the shortlist; secondary paths in `alsoReaches`) unless real Affinity/LinkedIn connector data is supplied.
 - **Theme:** omit `founder.themeAccent` (Ember default) unless Phase 8b chose a brand accent — then mirror the same values here so all three pages match.
 - **Apostrophes inside JS strings are curly (`’`)** — the known straight-quote silent-render gotcha applies to this file too.
+- **Warmth fields (required, per Output Style Rule #18):** fill `narration.introWarmth` (one sentence under the intro headline — our deep dive into the founder's world, excited to keep exploring together) and `narration.finaleWarmth` (one sentence between the finale CTA and replay, `<b>` on the closing phrase — the start of a conversation, looking forward to continuing the research together). Both render via `innerHTML`, so `<b>`/accent spans are allowed; both hide gracefully when absent. The dashboard's `{{FEEDBACK_CARD_BODY}}` is the third warmth string, filled in Phase 8 — keep all three distinct.
+- **TAM discipline:** `scan.universe` is the NARROW-ICP estimate that matches the scan query (the population that would actually pass all the ICP criteria), NOT the broad market TAM. `scan.funnel.universe` label = `"est. in [Founder]'s ICP"`. `heroStats` = FIVE stats leading with the ICP-TAM estimate (TAM → companies analyzed → custom signals → accounts curated → named contacts); `finaleSub` restates the same TAM number in prose. `scan.methodNote` (optional; replaces the generic scan-note line when present) tells the full funnel story in plain language, ≤~40 words: TAM estimate → surfaced and analyzed one by one → strongest fits → curated to the final N. Ground the TAM estimate in a real bottom-up method (name it in BUILD_NOTES); never invent a round number.
+- **Tagline anti-duplication:** `founder.tagline` renders directly above `introHeadline` in beat 1. If it would restate the headline, set it to `""` — beat 1 renders cleanly without it. Never say the same thing twice in the opener.
 
 **Step 3 — capture `assets/dashboard-preview.png`** for the hero's 3D preview: screenshot the populated `dashboard.html` at 1600×1000 @2x (Playwright if available; headless CI may skip — the hero hides the preview gracefully when the file is missing, but the page is much stronger with it. If skipped, record it in BUILD_NOTES as a follow-up).
 
@@ -1855,6 +1861,8 @@ Then walk this manual checklist:
 - [ ] At least one verbatim founder quote (from `inputs/`) appears in CONTEXT.md or `gtm_thesis` entries
 - [ ] Webset ID and saved JSON files are documented in BUILD_NOTES.md
 - [ ] Cinematic: every `narration` key filled (no generic fallbacks shipping); hero title = quality framing; `?act=0`..`?act=9` all render; reduced-motion shows the static version; `axes[].weight` sums to 100; exactly one axis carries `wowNote`; `evidenceFeed` lines trace to real company sources
+- [ ] Cinematic warmth + TAM: `introWarmth` + `finaleWarmth` present and pass Rule #18 tone (confident partnership, distinct roles, not self-deprecating); `scan.universe` is the narrow-ICP estimate (not broad TAM) and matches `finaleSub`'s number; `heroStats` = 5 leading with the TAM stat; `scan.methodNote` tells the funnel story in ≤~40 words; `founder.tagline` does not restate `introHeadline`
+- [ ] Dashboard: `{{FEEDBACK_CARD_BODY}}` replaced (no leftover token); the bottom "How'd we do?" card renders on every tab and in both light/dark themes
 - [ ] Walkthrough finale CTA + skip link → `./dashboard.html` (walk index → dashboard once); beat 1 shows the founder's own mark floating, beat 2 pivots to the dashboard
 
 Fix any failures before delivery.
