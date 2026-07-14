@@ -244,6 +244,8 @@ A "minor" decision is one where:
 - Phase 6i: curate to **exactly the target** (one fewer is fine if the last candidate is weak - N-1 strong beats N with a passenger).
 - Phase 7/8c: `scan.curated`, hero stats, and shortlist copy all reflect the actual curated count - never hardcode 10.
 
+**Theme color (accent).** Every build carries an accent theme, default **ember** (amber). Source: the `THEME_COLOR` env/shell var set by the engine workflow (decoded from the hub form's dropdown) — else `ember`. Valid keys are exactly those in `template/theme-presets.json` (`ember gold coral rose magenta violet indigo blue cyan teal emerald lime`); any unknown/absent value falls back to `ember`. Recorded in `config.json` as `theme_color` at Phase 0. Consumed in Phase 8 (dashboard `{{THEME_ACCENT_*}}`) and Phase 8c (walkthrough `founder.themeAccent`), both resolved from `theme-presets.json`. Only the accent recolors — the `--green*` ramp plus `--q-med` (the MED tier, which IS the accent, historically amber). `--q-high` (green, high tier), `--q-low` (red, low tier), `--purple` (links), and `--teal` (priority star) stay FIXED — the tier legend + info hierarchy must read the same across every theme.
+
 **Status update format for auto-proceed moments.** Keep it tight (1-3 lines):
 
 ```
@@ -419,6 +421,7 @@ cat > config.json <<EOF
   "slug": "$SLUG",
   "description": "$DESCRIPTION",
   "geo_scope": "$GEO_SCOPE",
+  "theme_color": "${THEME_COLOR:-ember}",
   "build_started": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 }
 EOF
@@ -457,6 +460,7 @@ cat > config.json <<EOF
   "slug": "$SLUG",
   "description": "$DESCRIPTION",
   "geo_scope": "$GEO_SCOPE",
+  "theme_color": "${THEME_COLOR:-ember}",
   "build_started": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 }
 EOF
@@ -1664,7 +1668,7 @@ The template HTML uses `{{...}}` placeholders for everything that varies per bui
 cp template/index.html index.html
 ```
 
-Now substitute every `{{...}}` placeholder. The full list (12 dashboard placeholders, all enumerable via `grep -oE "\{\{[A-Z_0-9]+\}\}" template/index.html | sort -u`):
+Now substitute every `{{...}}` placeholder. The full list (14 dashboard placeholders, all enumerable via `grep -oE "\{\{[A-Z_0-9]+\}\}" template/index.html | sort -u`):
 
 | Placeholder | Source / Value |
 |---|---|
@@ -1680,6 +1684,8 @@ Now substitute every `{{...}}` placeholder. The full list (12 dashboard placehol
 | `{{SEGMENT_MIDMARKET_SUBTITLE}}` | One-sentence subtitle for the Mid-Market tab landing page (e.g., "Data-sensitive mid-market accounts with near-term BYOC inference need.") |
 | `{{PRODUCT_LOGO_SVG}}` | The founder's mark — a simple ~24×24 line-icon `<svg>`. The template ships a neutral spark as the default; replace it with something on-brand (the Lantern build used a coach-lamp lantern). Lives in `.logo-mark`; the landing reuses it. |
 | `{{FEEDBACK_CARD_BODY}}` | 2-3 sentence body for the dashboard's bottom "How'd we do?" outro card, per founder. Per Output Style Rule #18: acknowledge we're early in the founder's world, ask explicitly what they love and where we can improve, close on making it stronger together. Distinct copy from the walkthrough's `introWarmth`/`finaleWarmth` — do not repeat those lines. |
+| `{{THEME_ACCENT_DARK}}` | The dark-mode accent ramp, from `theme-presets.json` preset `config.theme_color` (fallback `ember`). Emit these 9 lines using the preset's `dashDark.{green,greenDark,greenDeep}` (G = the `green` triple): `--green-h: <green>;` (raw triple, no hsl() — powers the custom-alpha hero glow inner + med-chip) `--green-h2: <the preset's walkthrough.accDeep triple>;` (raw — the darker outer hero-glow stop; only emit in the DARK block, light inherits it) `--green: hsl(<green>);` `--green-dark: hsl(<greenDark>);` `--green-deep: hsl(<greenDeep>);` `--green-tint: hsl(<G> / .15);` `--green-tint2: hsl(<G> / .08);` `--green-ring: hsl(<G> / .4);` `--green-glow: 0 0 0 1px hsl(<G> / .45), 0 0 22px hsl(<G> / .18);` |
+| `{{THEME_ACCENT_LIGHT}}` | Same 8 declarations for light mode, from the preset's `dashLight.{green,greenDark,greenDeep}` (Gl = the light `green` triple): `--green-h: <Gl>;` then the ramp with light alpha stops: tint `/ .12`, tint2 `/ .07`, ring `/ .3`, glow `0 0 0 1px hsl(<Gl> / .35),0 0 24px hsl(<Gl> / .15)` (note light glow blur is 24px, matching the original). (`--q-med`/`--q-med-d` already reference `var(--green)`/`var(--green-dark)` in the template, so they follow automatically — do not emit them.) |
 
 Substitute via `sed` or directly — all should be replaced before validation. After replacement, the grep at the bottom of this phase should return zero `{{...}}` matches.
 
@@ -1774,7 +1780,7 @@ If you feel the urge to edit the walkthrough HTML for this founder, stop: the th
 - **Every number and citation is REAL.** `heroStats` are the build's actual counts; `evidenceFeed` = 8-9 citations lifted from the scored companies' own `sources` (tier 1/2 mix). Fabricating either is a build-failing offense.
 - **Exactly one axis carries `wowNote`** — the founder-specific WOW signal. Its `body` is the "why this signal wins" argument from CONTEXT.md, 3-4 sentences, `<b>` allowed on the one load-bearing phrase.
 - **Keep the honest hedges:** the network stays `illustrative: true` with role-based connectors (Primary Partner / vertical Advisor / Founder / Operator Network — 3-4 roles, each owning a clean partition of the shortlist; secondary paths in `alsoReaches`) unless real Affinity/LinkedIn connector data is supplied.
-- **Theme:** omit `founder.themeAccent` (Ember default) unless Phase 8b chose a brand accent — then mirror the same values here so all three pages match.
+- **Theme:** set `founder.themeAccent` from `config.theme_color`'s preset in `template/theme-presets.json` — copy that preset's 6 `walkthrough` triples verbatim (`acc/accSoft/accDeep/acc2/bgh/nh`). For `ember` (the default), omit `themeAccent` entirely (build.html's `:root` is already Ember). Unknown/absent `theme_color` → treat as `ember` (omit). build.html applies these at runtime, so the whole walkthrough recolors. Same key must drive the dashboard's `{{THEME_ACCENT_*}}` (Phase 8) so both pages match. A hand-set `themeAccent` overrides the preset.
 - **Apostrophes inside JS strings are curly (`’`)** — the known straight-quote silent-render gotcha applies to this file too.
 - **Warmth fields (required, per Output Style Rule #18):** fill `narration.introWarmth` (one sentence under the intro headline — our deep dive into the founder's world, excited to keep exploring together) and `narration.finaleWarmth` (one sentence between the finale CTA and replay, `<b>` on the closing phrase — the start of a conversation, looking forward to continuing the research together). Both render via `innerHTML`, so `<b>`/accent spans are allowed; both hide gracefully when absent. The dashboard's `{{FEEDBACK_CARD_BODY}}` is the third warmth string, filled in Phase 8 — keep all three distinct.
 - **TAM discipline:** `scan.universe` is the NARROW-ICP estimate that matches the scan query (the population that would actually pass all the ICP criteria), NOT the broad market TAM. `scan.funnel.universe` label = `"est. in [Founder]'s ICP"`. `heroStats` = FIVE stats leading with the ICP-TAM estimate (TAM → companies analyzed → custom signals → accounts curated → named contacts); `finaleSub` restates the same TAM number in prose. `scan.methodNote` (optional; replaces the generic scan-note line when present) tells the full funnel story in plain language, ≤~40 words: TAM estimate → surfaced and analyzed one by one → strongest fits → curated to the final N. Ground the TAM estimate in a real bottom-up method (name it in BUILD_NOTES); never invent a round number.
@@ -1863,6 +1869,7 @@ Then walk this manual checklist:
 - [ ] Cinematic: every `narration` key filled (no generic fallbacks shipping); hero title = quality framing; `?act=0`..`?act=9` all render; reduced-motion shows the static version; `axes[].weight` sums to 100; exactly one axis carries `wowNote`; `evidenceFeed` lines trace to real company sources
 - [ ] Cinematic warmth + TAM: `introWarmth` + `finaleWarmth` present and pass Rule #18 tone (confident partnership, distinct roles, not self-deprecating); `scan.universe` is the narrow-ICP estimate (not broad TAM) and matches `finaleSub`'s number; `heroStats` = 5 leading with the TAM stat; `scan.methodNote` tells the funnel story in ≤~40 words; `founder.tagline` does not restate `introHeadline`
 - [ ] Dashboard: `{{FEEDBACK_CARD_BODY}}` replaced (no leftover token); the bottom "How'd we do?" card renders on every tab and in both light/dark themes
+- [ ] Theme: `config.theme_color` resolved; dashboard `{{THEME_ACCENT_DARK}}`/`{{THEME_ACCENT_LIGHT}}` filled from the preset (no leftover token, incl. `--green-h`), walkthrough `founder.themeAccent` = same preset's triples (or omitted for ember); accent recolors both pages incl. the med-tier chip (med IS the accent); high-tier(green)/low-tier(red) chips + purple links + teal star unchanged; ember default renders pixel-identical to before; unknown key fell back to ember
 - [ ] Walkthrough finale CTA + skip link → `./dashboard.html` (walk index → dashboard once); beat 1 shows the founder's own mark floating, beat 2 pivots to the dashboard
 
 Fix any failures before delivery.
