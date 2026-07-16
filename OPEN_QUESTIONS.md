@@ -185,3 +185,19 @@ Track per build:
 - End-to-end cost (target $7-15)
 
 If all three verticals hit ≥75% V1 quality on the audit dimensions, the skill is generalized. If industrials lands at 50%, the prose is more inference-biased than the refactor claims and another iteration is needed.
+
+---
+
+## Frost Security FDI (2026-07-16) — validation results + new open questions
+
+The Network tab (radial Affinity warm-path map) + Contacts tab (rows worklist) + a font overhaul + ~12 design fixes shipped to `fdi-template` and were transplanted into the live Frost Security demo. Two build failures were catalogued and fixed in SKILL.md:
+
+- **F15 — unstamped placeholder on the live dashboard.** `{{FEEDBACK_CARD_BODY}}` shipped raw because Phase 10's grep ran on `index.html` (the walkthrough post-8c), never re-checking the deployed `dashboard.html`. Fixed: post-rename re-grep in 8c + Phase 10 grep targets `dashboard.html` with a digit-safe `[A-Z0-9_]+` class + engine Verify-step backstop.
+- **F16 — short product name.** `{{PRODUCT_NAME}}` = "Frost" not "Frost Security". Fixed: Phase 0 records the FULL brand name; Phase 10 checklist verifies it.
+
+### New open questions
+
+- **Q17 — public-deploy privacy (DECIDED, implementing).** FDI dashboards deploy to public `*.vercel.app` aliases carrying real Affinity data (contact/connector emails, IDs, LinkedIn, interaction dates + subjects), AND the deploy published the ENTIRE build workdir (`inputs/` founder docs, `CONTEXT.md`, research JSON). Decision (Alex, 2026-07-16): (a) **allowlist deploy** — the engine now deploys only the dashboard files, not the workdir root; (b) **password-protect** — `middleware.js` edge Basic-Auth (fail-closed) + `FDI_DASHBOARD_PASSWORD`. Middleware-on-static-framework:null is documented but not yet live-verified — confirm at the next E2E test build.
+- **Q18 — saved lists are device-local.** The Contacts tab's saved lists live in `localStorage` (`fdi_lists_<slug>`) — they don't survive a browser switch or a domain change. Acceptable for founders, or does list persistence need a backend? Open.
+- **Q19 — domain hygiene.** `data.js` company `domain` is the Affinity join key but nothing validates it resolves; a typo yields a silently thin Network tab. Candidate: engine logs `not_found` companies to BUILD_NOTES / the Slack report. Open.
+- **Q20 — in-flight stage-1 repos.** A per-founder repo that completed stage-1 before this update but runs stage-2 after will pair the new skill against its old `template/` snapshot. Low volume; mitigation = re-run those from stage-1. No version-pinning yet. Open.

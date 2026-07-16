@@ -57,11 +57,13 @@ The skill operates inside a per-founder Git repo at `~/fdi/<founder-slug>/`. Lay
 ├── lovelace-contacts.json               # Saved Phase 6k — LinkedIn results per company
 ├── founder-pick-research.json           # Saved Phase 6m — directed research for founder-named picks
 ├── CONTEXT.md                           # Generated Phase 4
-├── data.js                              # Generated Phase 7 (overwrites template's)
+├── data.js                              # Generated Phase 7 (overwrites template's). company name+domain also feed the Network/Contacts tabs
+├── network-data.js / network-data.json  # ENGINE-generated AFTER Phase 10 (fetch-affinity-network.mjs, real Affinity). NEVER create/copy/fabricate it — absent during every skill phase; the Network+Contacts tabs degrade to a designed empty state without it
 ├── index.html                           # Phase 8c — the scroll walkthrough (entry page), copied VERBATIM from template/build.html (never edited per founder)
-├── dashboard.html                       # The dashboard app (Phase 8; dark default + light toggle + All tab + score color-coding)
+├── dashboard.html                       # The dashboard app (Phase 8; dark default + light toggle + All tab + score color-coding + NETWORK_DATA-driven Network & Contacts tabs)
+├── middleware.js, vercel.json           # From template — edge Basic-Auth deploy gate + static config; keep as-is (engine sets FDI_DASHBOARD_PASSWORD)
 ├── build-data.js                        # Phase 8c — the cinematic's only founder-specific input (schema: template/build-data-template.js)
-├── assets/                              # Phase 8c — FULL copy of template/assets (logos/ + primary-lockup.svg)
+├── assets/                              # Phase 8c — FULL copy of template/assets (logos/ + primary-lockup.svg — used by the WALKTHROUGH; the dashboard topbar uses an inline mark)
 ├── assets/dashboard-preview.png         # Phase 8c — screenshot of THIS build's dashboard for the cinematic hero
 ├── BUILD_NOTES.md                       # Generated Phase 9
 └── .git/                                # Initialized Phase 0; commit per phase
@@ -101,9 +103,10 @@ You are running the FDI skill in Claude Code for a market development associate 
 Output: 4 files at the repo root, plus 3 saved JSON intermediates:
 - `CONTEXT.md`, the research brief
 - `data.js`, fully populated with real companies and enrichment from the Webset
-- `index.html`, the dashboard — branded, signal-labeled, hiring-regex-tuned for this vertical, and shipping the v2 defaults (dark mode default + light toggle, score-quality color-coding, "All" tab as the default view). See "Dashboard visual defaults (v2)" before Phase 8.
+- `dashboard.html`, the dashboard — branded, signal-labeled, hiring-regex-tuned for this vertical, and shipping the v3 defaults (dark mode default + light toggle, score-quality color-coding, "All" tab as the default view, and the two data-driven relationship tabs — Network + Contacts — that ship empty-but-graceful and light up when the engine writes `network-data.js` post-build). You customize it as `index.html` in Phase 8, then Phase 8c renames it to `dashboard.html` and the walkthrough takes `index.html`. See "Dashboard visual defaults (v3)" before Phase 8.
 - `BUILD_NOTES.md`, documents the structural choices you made
 - `webset-spec.json`, `webset-response.json`, `lovelace-contacts.json`, saved intermediates for reproducibility
+- NOTE: `network-data.js` is NOT one of your outputs — the engine generates it from Affinity after your build finishes. Never create, copy (the template ships a fictional fixture), or fabricate it.
 - the scroll walkthrough (Phase 8c, STANDARD) — `template/build.html` copied verbatim as the build's **`index.html`** + a generated `build-data.js` + `assets/`. Final flow every build ships: **index.html (walkthrough, two-beat founder opener) → dashboard.html**, all in the Ember design system. A separate landing page (Phase 8b) is optional and off by default.
 
 This is an 11-phase build (Phase 0–10), plus the standard landing (Phase 8b) and cinematic (Phase 8c). Do not skip phases. Do not skip ahead. Each phase ends with a `git commit` so the build has clean version history.
@@ -189,7 +192,7 @@ These rules apply to every piece of text you write into CONTEXT.md, data.js fiel
 
 17. **`opp_reason` must acknowledge a hurdle when `signal_score` ≤ 4.** Honest weakness signals credibility. The Valar V1 Mastercard pattern is the model: `opp_reason` flags "Mastercard has deep in-house expertise, so Valar needs to demonstrate clear value beyond what their team has built" alongside the opportunity. When `signal_score` is 4 or below, the `opp_reason` text MUST contain at least one challenge-acknowledgment phrase: a hurdle, an in-house competing capability, a procurement obstacle, a competitor relationship, or a timing risk. Phase 7 self-check fails the entry if `signal_score ≤ 4` and `opp_reason` reads uniformly bullish. (Reference build → Plural FDI's `opp_reason` fields were uniformly positive across all 10 companies; honesty leaked into `distress_reason` instead of where it belonged.)
 
-18. **Warmth copy tone — confident partnership, never self-deprecating.** The three founder-facing warmth strings (`narration.introWarmth`, `narration.finaleWarmth`, and the dashboard's `{{FEEDBACK_CARD_BODY}}`) frame the deliverable as a capable partner's strong first pass and the start of a working relationship — never an apology. **Banned:** "we gave it our best shot", "hopefully we got it right", "we tried our best", "sorry if we missed", or any phrasing that undersells the research. The feedback ask is explicit and two-sided (what they love AND where we can improve), and closes on collaboration ("make this even stronger together" spirit). The three strings play **distinct rhetorical roles** and must not repeat each other: `introWarmth` = "this is our deep dive into your world, excited to keep exploring it together" (opens the walkthrough); `finaleWarmth` = "this is the start of a conversation, looking forward to continuing the research together" (closes the walkthrough cinematic); `{{FEEDBACK_CARD_BODY}}` = the explicit feedback ask (the dashboard outro, where the founder has just seen the real intelligence). (Reference build → Frost Security, per Jason Gelman's 2026-07 feedback.)
+18. **Warmth copy tone — confident partnership, never self-deprecating.** The three founder-facing warmth strings (`narration.introWarmth`, `narration.finaleWarmth`, and the dashboard's `{{FEEDBACK_CARD_BODY}}`) frame the deliverable as a capable partner's strong first pass and the start of a working relationship — never an apology. **Banned:** "we gave it our best shot", "hopefully we got it right", "we tried our best", "sorry if we missed", or any phrasing that undersells the research. The feedback ask is explicit and two-sided (what they love AND where we can improve), and closes on collaboration ("make this even stronger together" spirit). The three strings play **distinct rhetorical roles** and must not repeat each other: `introWarmth` = "this is our deep dive into your world, excited to keep exploring it together" (opens the walkthrough); `finaleWarmth` = "this is the start of a conversation, looking forward to continuing the research together" (closes the walkthrough cinematic); `{{FEEDBACK_CARD_BODY}}` = the explicit feedback ask (the dashboard outro, where the founder has just seen the real intelligence). (Reference build → Frost Security, per Jason Gelman's 2026-07 feedback.) Verify `{{FEEDBACK_CARD_BODY}}` is stamped in the FINAL `dashboard.html` (post-rename), not just `index.html` (F15). Use the founder's FULL brand name across all three strings (F16).
 
 ---
 
@@ -414,10 +417,14 @@ cd ~/fdi/$SLUG
 # Clone the FDI template
 git clone https://github.com/alexg207/fdi-template.git template/
 
-# Save build config (geo scope, founder name) for later phases to read
+# Save build config (geo scope, founder name) for later phases to read.
+# founder_name = the FULL brand name as the founder writes it ("Frost Security",
+# not "Frost"). It flows verbatim into {{PRODUCT_NAME}}, the walkthrough, and
+# Slack/hub reporting. If the dispatch input is a short form, expand it from the
+# docs in inputs/ before writing it here (F16).
 cat > config.json <<EOF
 {
-  "founder_name": "<Company Name>",
+  "founder_name": "<Full Brand Name>",
   "slug": "$SLUG",
   "description": "$DESCRIPTION",
   "geo_scope": "$GEO_SCOPE",
@@ -1322,12 +1329,12 @@ search_linkedin_profiles({
 
 **Warm-intro mapping:**
 
-For each LinkedIn profile returned, cross-reference against `PRIMARY_TEAM` and the Primary network connections list in CONTEXT.md (if present). For each match:
+For each LinkedIn profile returned, cross-reference against the Primary network connections list in CONTEXT.md (if present). For each match:
 
-1. Tag `primary_connection: "<teammate name>"` in the contact's CONTACT_MAP entry
+1. Tag `primary_connection: "<teammate name>"` in the contact's CONTACT_MAP entry (research signal only — see below)
 2. In the contact's `note` field (if you add one), specify the connection: "Warm via [Teammate]: [shared context, same school, prior coworkers, mutual connection X]"
 
-Warm intros are the highest-signal contact for the founder. Surface them in the dashboard's Network view and in `gtm_thesis` if a target company has multiple warm paths.
+Warm intros are high-signal, but the dashboard's **Network + Contacts tabs no longer render CONTACT_MAP/Lovelace-derived connections** — they show ONLY real Affinity warm paths, which the engine writes to `network-data.js` after the build. So surface warm-intro texture in **prose** (`gtm_thesis` when a company has multiple warm paths; CONTACT_MAP `note` fields), NEVER by inventing connection edges. Keep `CONTACT_MAP[].connections` empty (no synthesized relationships).
 
 **Sequencing:**
 
@@ -1506,7 +1513,9 @@ cp template/data.js data.js
 
 8. **Write `tags` 3-5 chips with mixed colors** (`Valar`/`brand` for relationship, `stack` for technical/constraint, `hw` for hard constraint, `hiring` for hiring signal, `neutral` for factual). Tooltips required if the tag is non-obvious. Hiring tags prefixed with the role being hired (e.g., `'Hiring: ML Platform'` for inference founders, `'Hiring: RCM'` for healthcare workflow, `'Hiring: Payments'` for fintech). **Banned tag values** (do not use): `Stage-1 ICP`, `Stage-2 ICP`, `Stage 1`, `Stage 2`, `Pipeline`, `Mid-Market`, `Enterprise`, `Target`, `ICP`, `In ICP`, or any other segment-classification meta-tag. Tags must reference product names, technical stack, constraints, relationship status, or hiring signals — never segment classification (the segment is already shown by the tab). See Section 9.4.
 
-9. **Populate `CONTACT_MAP`** with platform/infrastructure leadership keyed exactly to `SEGMENTS[].companies[].name` (character-for-character match including parentheses). Read from `lovelace-contacts.json`. Persona discipline reflects founder antagonist warnings, exclude personas the founder has flagged. Cross-reference Primary network for warm intros. See Section 9.10.
+9. **Populate `CONTACT_MAP`** with platform/infrastructure leadership keyed exactly to `SEGMENTS[].companies[].name` (character-for-character match including parentheses). Read from `lovelace-contacts.json`. Persona discipline reflects founder antagonist warnings, exclude personas the founder has flagged. **Keep `CONTACT_MAP[].connections` EMPTY** — the UI no longer synthesizes warm intros from `PRIMARY_TEAM`, and the Network/Contacts tabs render only real Affinity paths (engine-written `network-data.js`). Never invent connection edges. See Section 9.10.
+
+   **9a. `domain` is a join key, not just a favicon.** Every `SEGMENTS[].companies[].domain` must be the company's canonical registrable domain (no `www`, no path, no product/marketing subdomain — e.g. `acme.com`, not `www.acme.com/product` or `app.acme.com`). The engine's Affinity network step (`fetch-affinity-network.mjs`) resolves each company by normalized domain; a wrong/missing domain silently drops that account from BOTH the Network and Contacts tabs. Also keep `SEGMENTS[].companies[].name` stable — the tabs join it EXACTLY (character-for-character) to attach display metadata (subtitle/category/favicon).
 
 10. **Populate `JOB_LISTINGS`** from `sumble-jobs.json` (Phase 6j). Each company's `jobs[]` array maps to JOB_LISTINGS entries with title, team, location, URL. If a company has empty jobs in Sumble data, leave its JOB_LISTINGS entry empty rather than backfilling with weaker data.
 
@@ -1622,9 +1631,9 @@ git add data.js
 git commit -m "Phase 7: data.js populated (N companies across pipeline/mid-market/enterprise)"
 ```
 
-### Dashboard visual defaults (v2 — required in every build)
+### Dashboard visual defaults (v3 — baked into the template; do not regress)
 
-These are no longer optional polish. Every dashboard ships with all six. They come from the Lantern build (2026-06); `~/fdi/lantern-auto/dashboard.html` is the reference implementation — **copy its proven code rather than re-deriving from prose.** The template repo (`alexg207/fdi-template`) carries them going forward; if a cloned template predates v2, port these in during Phase 8.
+These are no longer optional polish, and they are **already baked into `alexg207/fdi-template` `index.html`.** Your Phase-8 job is to NOT regress them, not to port them in — and any fix belongs upstream in the template, never per build. (Do NOT copy from `~/fdi/lantern-auto/dashboard.html` — it predates the Network/Contacts tabs + the font overhaul and copying it would regress a build.) If a cloned `template/` somehow predates v3 (missing the Network/Contacts tabs or still using JetBrains Mono in the dashboard), re-clone the template rather than hand-porting.
 
 **1. Dark mode default + light/dark toggle.** Ship dark by default with a working light toggle.
 - Tokenize ALL color as CSS custom properties on `:root` (dark values) plus a `:root[data-theme="light"]{...}` override block. Never hard-code a hex/hsl outside the token set.
@@ -1647,18 +1656,46 @@ These are no longer optional polish. Every dashboard ships with all six. They co
 - `getCurrentSeg(){if(state.tab==='all')return {id:'all',companies:getAllCompaniesFlat()};return SEGMENTS.find(function(s){return s.id===state.tab;});}`
 - Segment tabs (pipeline/midmarket/enterprise) remain for filtering; "All" is the landing tab and the title-map needs an `'all'` entry.
 
-**4. Typography (3 roles, strict).**
-- Display face for the wordmark + page/section headings: **Space Grotesk** (`Space+Grotesk:wght@400;500;600;700`) — the Ember-system default since v3 (replaced Newsreader serif, 2026-07). Do NOT use Fraunces — its display-size lowercase "f" has a descending curl that reads as broken at large sizes (Lantern flagged it: "what is this F").
-- **Inter** for all UI/body.
-- Mono (**JetBrains Mono**) for NUMERIC DATA ONLY (scores, counts, the terminal readout). Never put mono on labels, eyebrows, pills, or section headers — mono-on-labels is an AI-slop tell. Section eyebrows use the same display serif as the headings, not mono.
+**4. Typography — split by page (2026-07-16 overhaul).**
+- **DASHBOARD (`index.html`/`dashboard.html`):** **Space Grotesk** `--font-display` for the wordmark/product name + `.context-h1` headings (do NOT use Fraunces — broken display-size "f"); **Inter** for all UI/body, and `--font-mono` is intentionally **repointed to Inter**; **Newsreader** serif `--font-num` for prominent figures ONLY (signal numbers, warmth scores, summary-stat figures). **NO actual monospace anywhere in the dashboard** — never re-add JetBrains Mono to the dashboard font `<link>` or any `font-family`. (Lyric Network Map match.)
+- **WALKTHROUGH (`build.html`) + LANDING (`landing.html`):** unchanged Ember system — Space Grotesk display, Inter UI/body, **JetBrains Mono for NUMERIC DATA ONLY** (never on labels/eyebrows/headings — mono-on-labels is an AI-slop tell). This is the only place the mono rule still applies.
 
 **5. Scoring consistency (stored composite == live weights).** The /100 signal shown in the dashboard MUST use the same weights as the tier/phase-7 composite. Lantern: `Math.round((0.35*pain + 0.25*trig + 0.25*res + 0.15*hir) * 20)` (Warranty 35 / Opportunity 25 / Tooling 25 / Hiring 15 — re-derive the weights per founder, and show them in a visible axis legend). Do NOT let `index.html` compute an equal-weight `(a+b+c+d)*5` total while tiers come from a weighted composite; they will disagree on the card. One weighting, applied in both places. **Corollary — ties:** whole-point axes make composite collisions routine. When two or more accounts land on the same composite, break the tie with an explicit `composite: <n>` override per company in data.js (evidence strength decides the order — see the Phase 7 composite tie-break step); `computeSignal()` returns the override first, so card, tooltip, and tier stay consistent.
 
 **6. Motion + mobile.** `@media (prefers-reduced-motion: reduce)` disables fade-ups / animations. No horizontal scroll on mobile — when you add an `overflow-x:auto` rule for the tab nav, target the actual element's CLASS (Lantern bug: the rule targeted `.tab-nav` but the element's class was `.page-tabs`; `tab-nav` was only the id, so the rule did nothing).
 
+**7. Network + Contacts tabs (data-driven, engine-owned).** Two tabs beyond the 3 segment tabs + "All", driven solely by `window.NETWORK_DATA`. Never build, edit, or fabricate them per founder; never remove `<script src="network-data.js">`. See "The Network + Contacts tabs" section below.
+
+**8. Balanced headers (no orphan lines).** `text-wrap:balance` on `.context-h1` and `.context-sub` so a heading/subheading never wraps to a lone one-word last line (symmetry).
+
+**9. Uniform card heights.** `.card-grid{align-items:stretch;grid-auto-rows:1fr}` + `.card{height:100%}` so every account card in a grid is the same height regardless of tag-row count.
+
+**10. Tab bar.** Tabs render at 17px/600 in near-white; the per-tab count pills are hidden by CSS (`.tab-count{display:none}`). Do not "fix" the pills back on.
+
+**11. Partner mark + polish.** The dashboard topbar co-brand is an inline Primary icon SVG + "Primary" TEXT sized/baselined to the product name — NOT `<img src="assets/primary-lockup.svg">` (that asset is for the walkthrough only). Also template-owned: summary stat cells vertically centered, dropdown menus max-height-capped + scrollable, trackpad zoom proportional + capped. All of these live in the template — fixes go upstream, never per build.
+
+**12. Deploy gate.** The template ships `middleware.js` (edge Basic-Auth, fail-closed) + `vercel.json`. Keep both; the engine deploys ONLY the dashboard files (allowlist) and sets `FDI_DASHBOARD_PASSWORD`. Never deploy the raw build root (it holds `inputs/`, `CONTEXT.md`, research JSON).
+
 **Two gotchas that break the render silently — check both after any copy edit:**
 - **Apostrophes in single-quoted JS strings.** Inserting copy containing `'` (e.g. "group's", "Lantern's") into a single-quoted JS string literal breaks the script with NO console error — the page just hangs on "Loading...". Reword to avoid the apostrophe (or escape it), then run `node --check` on the extracted inline `<script>`.
 - **`computeJobSignal` `/careers` filter.** If the hiring axis is computed from `JOB_LISTINGS` and the filter drops generic `/careers` URLs, a company whose listings all end in a bare `/careers` scores hiring=1 (false flatline — bit West Herr + Go Auto). Use deep careers URLs (the actual posting) and seed enough verified entries to reflect the tier. (Related: F11 axis-uniformity self-check.)
+
+### The Network + Contacts tabs (engine-owned data, skill-owned shell)
+
+Added 2026-07-16. The dashboard ships two relationship tabs that are **wholly data-driven and NOT built or customized per founder.**
+
+**The data contract.** Both tabs read `window.NETWORK_DATA` from `network-data.js`, which is written by the **FDI engine** (`fdi-engine/scripts/fdi/fetch-affinity-network.mjs`) as a workflow step **AFTER your build finishes** (post-Phase-10, pre-deploy), from real Affinity relationship data. It does not exist during any skill phase. The engine script is the schema authority — this is the MINIMAL UI contract (the engine emits more per-path fields: shown_paths, best_score, connector_id/email, contact_id/email, has_interaction_data, enrichment_status). Shape (v1):
+- `schema_version: 1`, `build_status: "ok" | "partial" | "unavailable"`
+- `summary: { companies_total, companies_with_path, coverage_pct, total_relationships, primary_connectors[] }`
+- `connectors: { "<Full Name>": { id, title, org, linkedin, location } }` — powers the hub-click connector card + "Show all connections →"
+- `companies: [ { company, domain, status: "resolved"|"no_relationships"|"not_found"|"error", total_paths, paths: [ { connector, contact_name, contact_title, seniority, type: "interaction"|"linkedin", score (0-100 | null for LinkedIn-only), at_target_company, linkedin_url, last_contact, history{ first/last email+meeting, next_meeting, with_connector } } ] } ]`
+
+**What the UI does with it** (so you don't try to rebuild it): a radial map per account (target center → Primary connector hubs → contact dots), warmth ramp fixed green/amber/grey (independent of the founder accent), animated flow dots, boxed legend with a Map/List toggle, a summary strip (coverage + 4 clickable stats that deep-link into Contacts pre-filtered + an "Explore the map" connector/seniority filter cell), a connector-centric view, a ranked list with a filter/sort toolbar; the Contacts tab flattens paths into a filterable rows table (search + warmth/seniority/connector/account/activity), tier-grouped, row-expand (why-this-score + history timeline), multiselect → bulk bar → saved lists (`fdi_lists_<slug>`, localStorage, device-local) + CSV export.
+
+**Hard rules:**
+- NEVER write, copy (the template's `network-data.js` is a fictional fixture), or fabricate `network-data.js`. If it's absent, the tabs show a designed empty state — that is correct, not a defect.
+- NEVER edit the Network/Contacts markup or JS per founder, and never remove `<script src="network-data.js">`.
+- The ONLY skill-side inputs that affect these tabs: `data.js` `SEGMENTS[].companies[].name` (exact-match join for display metadata), `SEGMENTS[].companies[].domain` (the Affinity join key), and `{{PRODUCT_SLUG}}` (the saved-lists localStorage namespace).
 
 ### Phase 8: Customize index.html
 
@@ -1672,8 +1709,8 @@ Now substitute every `{{...}}` placeholder. The full list (14 dashboard placehol
 
 | Placeholder | Source / Value |
 |---|---|
-| `{{PRODUCT_NAME}}` | Founder's product name (Phase 0) |
-| `{{PRODUCT_SLUG}}` | Founder's slug (Phase 0) for Slack channel reference |
+| `{{PRODUCT_NAME}}` | Founder's product name (Phase 0). **Use the FULL brand name** ("Frost Security", never "Frost") — it renders in the topbar brand, the partner mark, the axis-legend prose, and the feedback card; a short name reads wrong in all four. Occurs 5×. (Frost build shipped "Frost" — F16.) |
+| `{{PRODUCT_SLUG}}` | Founder's slug (Phase 0). Powers the theme localStorage key (`<slug>-theme`) AND the Contacts tab's saved-lists key (`fdi_lists_<slug>`). Occurs 5× incl. inside the Contacts IIFE — replace globally. |
 | `{{AXIS1_LABEL}}` | Phase 5 founder-specific axis 1 name (e.g., "Inference Pain", "Workflow Pain", "Process Pain") |
 | `{{AXIS1_DESCRIPTION}}` | One-sentence "what it measures" for axis 1, ending in a period — e.g., "heterogeneous-accelerator routing, gross-margin, or latency pain. Sourced from earnings calls, blog posts, and product docs." |
 | `{{AXIS2_LABEL}}` | Phase 5 founder-specific axis 2 name (the wow-axis) |
@@ -1687,24 +1724,28 @@ Now substitute every `{{...}}` placeholder. The full list (14 dashboard placehol
 | `{{THEME_ACCENT_DARK}}` | The dark-mode accent ramp, from `theme-presets.json` preset `config.theme_color` (fallback `ember`). Emit these 9 lines using the preset's `dashDark.{green,greenDark,greenDeep}` (G = the `green` triple): `--green-h: <green>;` (raw triple, no hsl() — powers the custom-alpha hero glow inner + med-chip) `--green-h2: <the preset's walkthrough.accDeep triple>;` (raw — the darker outer hero-glow stop; only emit in the DARK block, light inherits it) `--green: hsl(<green>);` `--green-dark: hsl(<greenDark>);` `--green-deep: hsl(<greenDeep>);` `--green-tint: hsl(<G> / .15);` `--green-tint2: hsl(<G> / .08);` `--green-ring: hsl(<G> / .4);` `--green-glow: 0 0 0 1px hsl(<G> / .45), 0 0 22px hsl(<G> / .18);` |
 | `{{THEME_ACCENT_LIGHT}}` | Same 8 declarations for light mode, from the preset's `dashLight.{green,greenDark,greenDeep}` (Gl = the light `green` triple): `--green-h: <Gl>;` then the ramp with light alpha stops: tint `/ .12`, tint2 `/ .07`, ring `/ .3`, glow `0 0 0 1px hsl(<Gl> / .35),0 0 24px hsl(<Gl> / .15)` (note light glow blur is 24px, matching the original). (`--q-med`/`--q-med-d` already reference `var(--green)`/`var(--green-dark)` in the template, so they follow automatically — do not emit them.) |
 
-Substitute via `sed` or directly — all should be replaced before validation. After replacement, the grep at the bottom of this phase should return zero `{{...}}` matches.
+Substitute via `sed` or directly — all should be replaced before validation. Several tokens occur multiple times (incl. `{{FEEDBACK_CARD_BODY}}` twice — one inside a CSS comment; `{{PRODUCT_NAME}}`/`{{PRODUCT_SLUG}}` 5× each), so substitution must be GLOBAL. The zero-match grep (digit-safe regex, below) is the only acceptance test.
 
 Other Phase 8 work:
 
-1. Update tab labels in `<nav class="page-tabs">` if your segment IDs differ from default (default is pipeline / midmarket / enterprise).
+1. Update tab labels in `<nav class="page-tabs">` if your segment IDs differ from default (default is pipeline / midmarket / enterprise). There are **6 tabs total** — only the 3 segment tabs get renamed; **"All", "Network", and "Contacts" labels are fixed** — do not rename or remove them.
 2. Sanity check `.tag.brand` CSS class is intact. All `c: 'brand'` values in your data.js render with founder accent.
 3. The data.js `{{SECTION_2_LABEL}}` placeholder is consumed by index.html's section rendering — verify Phase 7 set it consistently across all entries.
+4. **Do NOT touch the Network or Contacts tabs.** They are wholly `window.NETWORK_DATA`-driven with no per-founder customization. Never remove the `<script src="network-data.js">` tag (it 404s locally by design; the tabs show a designed empty state), and never copy `template/network-data.js` (a fictional fixture) into the build root.
 
 **Validate after edits:**
 
 ```bash
-# Self-validating: any remaining {{...}} placeholder = a missed substitution
-grep -nE "\\{\\{[A-Z_]+\\}\\}" index.html
+# Self-validating: any remaining {{...}} placeholder = a missed substitution.
+# NOTE the digit-safe class [A-Z0-9_]+ — a bare [A-Z_]+ MISSES {{AXIS1_*}}/{{AXIS2_*}}.
+grep -nE "\\{\\{[A-Z0-9_]+\\}\\}" index.html
 # If any results, those are missed replacements — fix.
 
 # Check the file is reasonably-sized HTML (not corrupted)
 wc -l index.html
 ```
+
+This grep runs AGAIN on the FINAL `dashboard.html` in Phase 8c (after the rename) and in Phase 10 — passing here does not clear the build. (Frost shipped a live `{{FEEDBACK_CARD_BODY}}` because validation never re-ran after `index.html` → `dashboard.html`. See F15.)
 
 **Commit:**
 
@@ -1764,7 +1805,12 @@ Every build ships two pages: **index.html (the walkthrough) → dashboard.html.*
 mv index.html dashboard.html                 # the dashboard moves off the root
 cp template/build.html ./index.html          # the walkthrough IS the entry — NEVER edit per founder
 mkdir -p assets && cp -R template/assets/. assets/   # EVERYTHING — logos AND primary-lockup.svg
-test -f assets/primary-lockup.svg || echo "BUILD ERROR: primary-lockup.svg missing — topbar, intro, and network hub all render broken images without it"
+cp template/middleware.js template/vercel.json .     # deploy gate + static config MUST ship at root
+test -f middleware.js && test -f vercel.json || echo "BUILD ERROR: middleware.js / vercel.json missing at root — deploy would be unprotected"
+git add middleware.js vercel.json            # new files — git add -u would miss them
+test -f assets/primary-lockup.svg || echo "BUILD ERROR: primary-lockup.svg missing — the WALKTHROUGH's topbar/intro/network act render broken images without it (the dashboard topbar does NOT use it — its partner mark is an inline SVG)"
+# MANDATORY: re-validate placeholders on the file that actually deploys (post-rename).
+grep -nE "\\{\\{[A-Z0-9_]+\\}\\}" dashboard.html && echo "✗ BUILD ERROR: placeholders in the SHIPPED dashboard.html" || echo "✓ dashboard.html clean"
 ```
 
 Copy the WHOLE `template/assets/` tree, never cherry-pick: two real builds shipped with broken Primary lockups because only `logos/` was copied.
@@ -1779,7 +1825,7 @@ If you feel the urge to edit the walkthrough HTML for this founder, stop: the th
 - **Each heroTitle line must fit on ONE rendered line: 28 characters max including spaces.** Longer lines wrap and orphan a word ("out." alone on its own line) - a real build shipped that way. Count the characters.
 - **Every number and citation is REAL.** `heroStats` are the build's actual counts; `evidenceFeed` = 8-9 citations lifted from the scored companies' own `sources` (tier 1/2 mix). Fabricating either is a build-failing offense.
 - **Exactly one axis carries `wowNote`** — the founder-specific WOW signal. Its `body` is the "why this signal wins" argument from CONTEXT.md, 3-4 sentences, `<b>` allowed on the one load-bearing phrase.
-- **Keep the honest hedges:** the network stays `illustrative: true` with role-based connectors (Primary Partner / vertical Advisor / Founder / Operator Network — 3-4 roles, each owning a clean partition of the shortlist; secondary paths in `alsoReaches`) unless real Affinity/LinkedIn connector data is supplied.
+- **Keep the honest hedges:** the WALKTHROUGH's act-8 network fan stays `illustrative: true` with role-based connectors (Primary Partner / vertical Advisor / Founder / Operator Network — 3-4 roles, each owning a clean partition of the shortlist; secondary paths in `alsoReaches`). This governs ONLY the `build-data.js` walkthrough fan — it is unrelated to the DASHBOARD's Network tab, which is real Affinity data the engine writes to `network-data.js` after the build. Never mark the dashboard side illustrative, and never fabricate NETWORK_DATA to make the walkthrough and dashboard "agree."
 - **Theme:** set `founder.themeAccent` from `config.theme_color`'s preset in `template/theme-presets.json` — copy that preset's 6 `walkthrough` triples verbatim (`acc/accSoft/accDeep/acc2/bgh/nh`). For `ember` (the default), omit `themeAccent` entirely (build.html's `:root` is already Ember). Unknown/absent `theme_color` → treat as `ember` (omit). build.html applies these at runtime, so the whole walkthrough recolors. Same key must drive the dashboard's `{{THEME_ACCENT_*}}` (Phase 8) so both pages match. A hand-set `themeAccent` overrides the preset.
 - **Apostrophes inside JS strings are curly (`’`)** — the known straight-quote silent-render gotcha applies to this file too.
 - **Warmth fields (required, per Output Style Rule #18):** fill `narration.introWarmth` (one sentence under the intro headline — our deep dive into the founder's world, excited to keep exploring together) and `narration.finaleWarmth` (one sentence between the finale CTA and replay, `<b>` on the closing phrase — the start of a conversation, looking forward to continuing the research together). Both render via `innerHTML`, so `<b>`/accent spans are allowed; both hide gracefully when absent. The dashboard's `{{FEEDBACK_CARD_BODY}}` is the third warmth string, filled in Phase 8 — keep all three distinct.
@@ -1810,6 +1856,7 @@ Following `template/BUILD_NOTES_TEMPLATE.md`, write `./BUILD_NOTES.md` at the re
 - **Webset details: ID, query, criteria, enrichment fields, completion time** (so user can refresh later)
 - **Cinematic section** (per the template's BUILD_NOTES shell): narration voice decisions, wowNote axis + why, evidenceFeed sources, themeAccent choice, dashboard-preview.png status, self-check results
 - **Reproducibility note:** point to `webset-spec.json`, `webset-response.json`, `lovelace-contacts.json` as the saved intermediates
+- **Network tab note:** `network-data.js` is engine-generated from Affinity AFTER this build (or still pending, for a local build) — so a reviewer doesn't read the empty Network/Contacts tabs as a defect. Record the per-company `domain` values used (they're the Affinity join keys; a wrong domain silently drops the account).
 - Data quality notes, strong / thin / missing
 - Open questions for the user
 - Recommended next steps before the demo
@@ -1831,12 +1878,22 @@ Run automated checks where possible:
 # 1. data.js parses (catches unbalanced quotes/brackets)
 node --check data.js && echo "✓ data.js parses" || echo "✗ data.js PARSE ERROR"
 
-# 2. No leftover template placeholders or Valar-specific strings
-grep -nE "\\{\\{[A-Z_]+\\}\\}" data.js index.html && echo "✗ Placeholders remaining" || echo "✓ No placeholders"
-grep -n "Inference Pain\\|Data Residency" index.html | grep -v "^[[:space:]]*\\(//\\|\\*\\)" && echo "✗ Valar axis labels still in HTML" || echo "✓ Axis labels customized"
+# 2. No leftover placeholders/markers in the SHIPPED files (digit-safe regex +
+#    bracket markers like [SECTION_2_LABEL]/[REPLACE]). dashboard.html is the
+#    load-bearing addition — it's what deploys (F15: Frost shipped a live {{...}}).
+grep -nE "\\{\\{[A-Z0-9_]+\\}\\}|\\[SECTION_2_LABEL\\]|\\[REPLACE\\]" data.js dashboard.html build-data.js index.html && echo "✗ Placeholders/markers remaining" || echo "✓ No placeholders"
+grep -n "Inference Pain\\|Data Residency" dashboard.html | grep -v "^[[:space:]]*\\(//\\|\\*\\)" && echo "✗ Valar axis labels still in HTML" || echo "✓ Axis labels customized"
 # (skip the second check if the founder genuinely is Valar)
 
-# 3. Required output files all exist (three-page flow + cinematic data)
+# 2b. Dashboard integrity: engine-owned network file absent, exactly one script
+#     tag for it, no mono regression, Newsreader present.
+test ! -f network-data.js && echo "✓ no network-data.js (engine writes it post-build)" || echo "✗ network-data.js present — you fabricated or copied the fixture; delete it"
+[ "$(grep -c 'src=\"network-data.js\"' dashboard.html)" = "1" ] && echo "✓ network-data script tag intact" || echo "✗ network-data.js script tag missing/duplicated"
+grep -ci "JetBrains" dashboard.html | grep -q '^0$' && echo "✓ no mono in dashboard" || echo "✗ JetBrains Mono leaked into the dashboard"
+grep -qE '\-\-font-num:[^;]*Newsreader' dashboard.html && echo "✓ --font-num maps to Newsreader" || echo "✗ --font-num not Newsreader (font overhaul regressed)"
+grep -qE '\-\-font-mono:[^;]*Inter' dashboard.html && echo "✓ --font-mono repointed to Inter" || echo "✗ --font-mono not Inter (mono may render)"
+
+# 3. Required output files all exist (two-page flow + cinematic data)
 for f in CONTEXT.md data.js index.html dashboard.html build-data.js BUILD_NOTES.md; do
   test -f "$f" && echo "✓ $f" || echo "✗ MISSING: $f"
 done
@@ -1871,6 +1928,8 @@ Then walk this manual checklist:
 - [ ] Dashboard: `{{FEEDBACK_CARD_BODY}}` replaced (no leftover token); the bottom "How'd we do?" card renders on every tab and in both light/dark themes
 - [ ] Theme: `config.theme_color` resolved; dashboard `{{THEME_ACCENT_DARK}}`/`{{THEME_ACCENT_LIGHT}}` filled from the preset (no leftover token, incl. `--green-h`), walkthrough `founder.themeAccent` = same preset's triples (or omitted for ember); accent recolors both pages incl. the med-tier chip (med IS the accent); high-tier(green)/low-tier(red) chips + purple links + teal star unchanged; ember default renders pixel-identical to before; unknown key fell back to ember
 - [ ] Walkthrough finale CTA + skip link → `./dashboard.html` (walk index → dashboard once); beat 1 shows the founder's own mark floating, beat 2 pivots to the dashboard
+- [ ] `{{PRODUCT_NAME}}` is the FULL brand name (e.g. "Frost Security", not "Frost") everywhere it renders — topbar brand, partner mark, feedback card (F16)
+- [ ] Open `dashboard.html` locally: the 6-tab bar renders (All / 3 segments / Network / Contacts); the **Network and Contacts tabs show the designed empty state** (not an error, not the fixture's fictional people — `network-data.js` is engine-written post-build); no console/page errors
 
 Fix any failures before delivery.
 
@@ -1893,6 +1952,8 @@ EOF
 ```
 
 Recommendation: **Option A** when the repo will be shared with the founder (cleaner Git tree); **Option B** when only the maintainer touches the repo. Either way, the deploy artifacts (`index.html`, `data.js`) stay at the root.
+
+**Public-deploy privacy (engine-owned).** The engine does NOT deploy the raw build root — it deploys only an allowlist of dashboard files (`index.html`, `dashboard.html`, `data.js`, `network-data.js`, `build-data.js`, `assets/`, `middleware.js`, `vercel.json`). This keeps `inputs/` (the founder's uploaded docs), `CONTEXT.md`, and the research JSON OFF the public site, and `middleware.js` + `FDI_DASHBOARD_PASSWORD` gate the whole thing behind Basic Auth. Do NOT relocate/rename the allowlisted files or the deploy will miss them. (If you ever deploy a build by hand, deploy from a clean directory containing only those files — never `vercel deploy` the workdir root.)
 
 **Final commit if anything was fixed:**
 
@@ -1978,11 +2039,15 @@ The skill body cites failure modes from a single end-to-end test build (Valar, i
 
 **F11 — Hiring axis flatline from JOB_LISTINGS empty cascade.** Lantern May 6 build hit basic-Exa 402 mid-build, skipping Phase 6j entirely (the Sumble + careers + LinkedIn + ATS fallback ladder all depend on basic Exa). `JOB_LISTINGS[<co>] = []` for all 10 companies → `computeJobSignal()` default returned uniform 1 → Hiring axis carried zero discriminating signal across the dashboard. Three preventions: (1) Phase 0 preflight credit-pool probe halts the build BEFORE work starts when basic-Exa credits aren't funded; (2) Phase 6j Step 0 mines the Webset's already-paid-for role-evidence enrichment for verified named role-bearers as Tier-0 hiring signal that doesn't depend on basic-Exa; (3) Phase 7 axis-uniformity self-check fails the build if any axis has ≥80% identical scores across 10 entries, catching this and any future axis flatline regardless of root cause. Lantern May 6 also exposed a separate F4 recurrence — 2 of 10 gtm_thesis entries named target-company execs ("Brian Schlise", "Marco Schooley"); the existing subjective durability check missed both. Phase 7 self-check now runs an objective `\b[A-Z][a-z]+ [A-Z][a-z]+\b` regex over `gtm_thesis` and fails any capitalized two-word name that isn't in `PRIMARY_TEAM` or a recognized firm/fund.
 
-**F12 — Silent render breakers (Lantern May 6).** Two edits broke the dashboard with no console error, page stuck on "Loading...": (1) an apostrophe in inserted copy ("group's") landing inside a single-quoted JS string literal; (2) a Python copy-edit script whose `rep()` return value wasn't assigned back, though that one crashed before writing rather than corrupting. Prevention: avoid apostrophes in copy that goes into single-quoted strings (or escape them), and run `node --check` on the extracted inline `<script>` after every copy edit. See "Dashboard visual defaults (v2)" gotchas.
+**F12 — Silent render breakers (Lantern May 6).** Two edits broke the dashboard with no console error, page stuck on "Loading...": (1) an apostrophe in inserted copy ("group's") landing inside a single-quoted JS string literal; (2) a Python copy-edit script whose `rep()` return value wasn't assigned back, though that one crashed before writing rather than corrupting. Prevention: avoid apostrophes in copy that goes into single-quoted strings (or escape them), and run `node --check` on the extracted inline `<script>` after every copy edit. See "Dashboard visual defaults (v3)" gotchas.
 
-**F13 — Two scoring systems disagreeing (Lantern May 6).** The tier (high/med) came from the weighted phase-7 composite while the displayed /100 total used an equal-weight `(a+b+c+d)*5` — so a card could show a green "high" chip next to a number that didn't earn it. Separately, `computeJobSignal` zeroed West Herr + Go Auto because all their `JOB_LISTINGS` URLs were bare `/careers` (filtered as generic). Prevention: one weighting applied in both the composite and the live `computeSignal`; derive tier from the displayed score; use deep careers URLs. Captured as v2 defaults #2 and #5.
+**F13 — Two scoring systems disagreeing (Lantern May 6).** The tier (high/med) came from the weighted phase-7 composite while the displayed /100 total used an equal-weight `(a+b+c+d)*5` — so a card could show a green "high" chip next to a number that didn't earn it. Separately, `computeJobSignal` zeroed West Herr + Go Auto because all their `JOB_LISTINGS` URLs were bare `/careers` (filtered as generic). Prevention: one weighting applied in both the composite and the live `computeSignal`; derive tier from the displayed score; use deep careers URLs. Captured as v3 defaults #2 and #5.
 
-**F14 — Display-serif "f" + mono-on-labels (Lantern May 6).** Fraunces at display size rendered a broken-looking lowercase "f" (user: "what is this F"); mono crept onto section labels and read as AI-slop. Prevention: one display face only (Space Grotesk since v3; previously Newsreader), Inter for UI, JetBrains Mono for numeric DATA ONLY — never on labels/eyebrows/headings. Captured as v2 default #4.
+**F14 — Display-serif "f" + mono-on-labels (Lantern May 6).** Fraunces at display size rendered a broken-looking lowercase "f" (user: "what is this F"); mono crept onto section labels and read as AI-slop. Prevention: one display face only (Space Grotesk since v3; previously Newsreader), Inter for UI, mono for numeric DATA ONLY — never on labels/eyebrows/headings. **Scope (2026-07-16):** this applies to `build.html` (walkthrough) + `landing.html` ONLY. The DASHBOARD moved to Inter + Newsreader figures with **NO monospace** — see v3 default #4. Do not re-add JetBrains Mono to the dashboard.
+
+**F15 — Unstamped placeholder on the live dashboard (Frost, 2026-07).** `{{FEEDBACK_CARD_BODY}}` shipped raw on the live page: Phase 10's placeholder grep ran on `index.html`, but after Phase 8c `index.html` is the WALKTHROUGH — the deployed `dashboard.html` was never re-checked. Prevention: re-grep `dashboard.html` immediately after the 8c rename, and Phase 10's grep now targets `dashboard.html` (+ `build-data.js`) with the digit-safe `[A-Z0-9_]+` class (+ bracket markers). An engine Verify-step backstop fails the build on any `{{...}}` in the shipped files.
+
+**F16 — Short product name (Frost, 2026-07).** `{{PRODUCT_NAME}}` was set to "Frost" instead of the full "Frost Security" — reads wrong in the topbar brand, partner mark, axis prose, and feedback card. Prevention: Phase 0 records `founder_name` as the FULL brand name (expand short dispatch inputs from `inputs/`); Phase 10 checklist verifies it in `dashboard.html`.
 
 ### What the reference build got right
 

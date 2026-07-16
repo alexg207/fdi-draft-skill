@@ -10,7 +10,7 @@ Rules apply to every shipped artifact (CONTEXT.md, data.js, index.html, BUILD_NO
 
 | # | Rule | Quick test |
 |---|---|---|
-| 1 | Avoid em dashes | ≤1 per company entry |
+| 1 | Avoid em dashes | ≤3 per company entry (hard cap) |
 | 2 | Default geo: US + Canada only | unless user expanded scope in Phase 0 |
 | 3 | No filler descriptors | no "industry-defining", "best-in-class", "innovative" |
 | 4 | Numeric ranges, not point estimates | "$2M–$5M" not "$3.5M" if estimated |
@@ -24,6 +24,8 @@ Rules apply to every shipped artifact (CONTEXT.md, data.js, index.html, BUILD_NO
 | 12 | Source quality: 6-target / 4-floor | ≥1 Tier-1 primary; ≥2 Tier-2 vertical-credible; ≤1 Tier-3 |
 | 13 | gtm_thesis personnel-durable | no named individuals; survive personnel changes |
 | 14 | Reference build is scaffolding, not content | don't anchor on Valar — derive from this build's CONTEXT.md |
+
+SKILL.md carries 4 more rules beyond these (15 word caps · 16 no `(a)(b)(c)` enumeration · 17 `opp_reason` evidence hurdle · 18 warmth-copy tone) — see SKILL.md for the authoritative set.
 
 ---
 
@@ -123,23 +125,33 @@ Produce these before leaving Phase 5; they're consumed by Phases 6, 7, 8.
 | F10 | Field structurally not externally derivable (annualized inference spend) | Either drop the field or define a defensible 4-bucket enum |
 | F11 | Hiring axis flatline from JOB_LISTINGS empty cascade (Lantern May 6: basic-Exa 402 → Phase 6j skipped → uniform-1 Hiring) | Phase 0 preflight credit-pool probe + Phase 6j Step 0 (mine Webset role-evidence first) + Phase 7 axis-uniformity self-check (G2) |
 | F12 | Silent render breaker — apostrophe in single-quoted JS string → page stuck "Loading...", no console error | Avoid/escape apostrophes in copy; `node --check` the inline `<script>` after every copy edit |
-| F13 | Two scoring systems disagreeing (tier from weighted composite vs displayed equal-weight total); `computeJobSignal` zeroed companies whose listings were bare `/careers` | One weighting in both composite + live `computeSignal`; derive tier from displayed score; deep careers URLs (v2 defaults #2, #5) |
-| F14 | Fraunces display "f" looked broken; mono crept onto labels (AI-slop) | Space Grotesk display (v3; was Newsreader) / Inter UI / JetBrains Mono for numeric DATA ONLY (v2 default #4) |
+| F13 | Two scoring systems disagreeing (tier from weighted composite vs displayed equal-weight total); `computeJobSignal` zeroed companies whose listings were bare `/careers` | One weighting in both composite + live `computeSignal`; derive tier from displayed score; deep careers URLs (v3 defaults #2, #5) |
+| F14 | Fraunces display "f" looked broken; mono crept onto labels (AI-slop) | Space Grotesk display / Inter UI / mono DATA-ONLY — **build.html + landing.html ONLY**; dashboard has NO mono (v3 default #4) |
+| F15 | Unstamped `{{FEEDBACK_CARD_BODY}}` shipped live (grep ran on index.html, but that's the walkthrough post-8c; dashboard.html never re-checked) | Re-grep `dashboard.html` after the 8c rename; Phase 10 grep targets dashboard.html w/ `[A-Z0-9_]+`; engine Verify-step backstop |
+| F16 | `{{PRODUCT_NAME}}` = short name ("Frost" not "Frost Security") | Phase 0 records the FULL brand name (expand short dispatch inputs); Phase 10 checklist verifies in dashboard.html |
 
 ---
 
-## Dashboard visual defaults (v2 — required every build)
+## Dashboard visual defaults (v3 — baked into the template, don't regress)
 
-Copy proven code from `~/fdi/lantern-auto/dashboard.html`. Full prose: SKILL.md "Dashboard visual defaults (v2)" before Phase 8.
+**Baked into `alexg207/fdi-template` — do NOT copy from `~/fdi/lantern-auto` (predates Network/Contacts + font overhaul; would regress).** Fixes go upstream to the template, never per build. Full prose: SKILL.md "Dashboard visual defaults (v3)" before Phase 8.
 
 | # | Default | Test |
 |---|---|---|
 | 1 | Dark mode default + light toggle | tokenized `:root` + `[data-theme="light"]`; no-FOUC head script; sun/moon button; both pass WCAG AA |
 | 2 | Score-quality color coding, NO RED | green=best / amber=below; tier derived from score (`>=75?'high':'med'`); bar + number + chip agree |
 | 3 | "All" tab is the default view | `state.tab='all'`; All tab first w/ live count; enter = all cards ranked, not 3 |
-| 4 | Type: display face / Inter UI / mono DATA-ONLY | Space Grotesk since v3 (was Newsreader; not Fraunces); never mono on labels/eyebrows/headings |
+| 4 | Type — DASHBOARD: Space Grotesk display + Inter UI + Newsreader figures, **NO mono** | never re-add JetBrains Mono to the dashboard. Mono-for-data rule now applies ONLY to build.html + landing.html |
 | 5 | Stored composite == live weights | one weighting both places; visible axis legend |
 | 6 | reduced-motion + no mobile h-scroll | `@media (prefers-reduced-motion)`; `overflow-x` rule targets nav's real class |
+| 7 | Network + Contacts tabs (data-driven) | `window.NETWORK_DATA`-only; engine-generated; never build/edit per founder; empty-state graceful |
+| 8 | Balanced headers | `text-wrap:balance` on `.context-h1`/`.context-sub` (no orphan word) |
+| 9 | Uniform card heights | `.card-grid` stretch + `grid-auto-rows:1fr` + `.card{height:100%}` |
+| 10 | Tab bar 17px/600, count pills hidden | `.tab-count{display:none}` — don't turn them back on |
+| 11 | Partner mark = inline SVG + "Primary" text | no `<img primary-lockup.svg>` in dashboard topbar (that asset is walkthrough-only); centered stats; scrollable dropdowns; capped zoom |
+| 12 | Deploy gate | `middleware.js` Basic-Auth + `vercel.json`; engine allowlist-deploys + sets `FDI_DASHBOARD_PASSWORD` |
+
+**Network + Contacts tabs (engine data):** driven solely by `window.NETWORK_DATA` from `network-data.js`, which the **engine** writes from Affinity AFTER the build (`fetch-affinity-network.mjs`). Skill NEVER creates/copies/fabricates it. `data.js` company `name` (exact-join) + `domain` (Affinity join key) + `{{PRODUCT_SLUG}}` (lists key) are the only skill-side inputs. Absent the file → designed empty state (correct, not a bug).
 
 **Landing/cover page = Phase 8b (OPTIONAL, off by default since v3.1).** The walkthrough is the entry page; build a landing only on explicit ask.
 
@@ -173,7 +185,7 @@ Phase 6j: Sumble jobs gathered (N/M companies covered)
 Phase 6k: Lovelace contacts gathered (N profiles across M companies)
 Phase 6m: Founder-pick research saved (N companies)
 Phase 7: data.js populated (N companies × 4 axes × 3 sections)
-Phase 8: index.html customized for [vertical] axis labels and branding (+ v2 defaults: dark/light, color-coding, All tab)
+Phase 8: index.html customized for [vertical] axis labels and branding (+ v3 defaults: dark/light, color-coding, All tab)
 Phase 8b: landing / cover page (optional, off by default)
 Phase 8c: scroll walkthrough entry (index.html + build-data.js)
 Phase 9: BUILD_NOTES.md documenting structural decisions
