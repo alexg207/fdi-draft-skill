@@ -1805,9 +1805,9 @@ Every build ships two pages: **index.html (the walkthrough) → dashboard.html.*
 mv index.html dashboard.html                 # the dashboard moves off the root
 cp template/build.html ./index.html          # the walkthrough IS the entry — NEVER edit per founder
 mkdir -p assets && cp -R template/assets/. assets/   # EVERYTHING — logos AND primary-lockup.svg
-cp template/middleware.js template/vercel.json .     # deploy gate + static config MUST ship at root
-test -f middleware.js && test -f vercel.json || echo "BUILD ERROR: middleware.js / vercel.json missing at root — deploy would be unprotected"
-git add middleware.js vercel.json            # new files — git add -u would miss them
+cp template/middleware.js template/vercel.json template/package.json template/.vercelignore .   # deploy gate + ESM flag + allowlist MUST ship at root
+test -f middleware.js && test -f package.json && test -f .vercelignore || echo "BUILD ERROR: middleware.js / package.json / .vercelignore missing at root — deploy would be unprotected or leak the workdir"
+git add middleware.js vercel.json package.json .vercelignore   # new files — git add -u would miss them
 test -f assets/primary-lockup.svg || echo "BUILD ERROR: primary-lockup.svg missing — the WALKTHROUGH's topbar/intro/network act render broken images without it (the dashboard topbar does NOT use it — its partner mark is an inline SVG)"
 # MANDATORY: re-validate placeholders on the file that actually deploys (post-rename).
 grep -nE "\\{\\{[A-Z0-9_]+\\}\\}" dashboard.html && echo "✗ BUILD ERROR: placeholders in the SHIPPED dashboard.html" || echo "✓ dashboard.html clean"
