@@ -152,6 +152,8 @@ Produce these before leaving Phase 5; they're consumed by Phases 6, 7, 8.
 | 12 | Deploy gate | `middleware.js` Basic-Auth + `vercel.json`; engine allowlist-deploys + sets `FDI_DASHBOARD_PASSWORD` |
 
 **Network + Contacts tabs (engine data):** driven solely by `window.NETWORK_DATA` from `network-data.js`, which the **engine** writes from Affinity AFTER the build (`fetch-affinity-network.mjs`). Skill NEVER creates/copies/fabricates it. `data.js` company `name` (exact-join) + `domain` (Affinity join key) + `{{PRODUCT_SLUG}}` (lists key) are the only skill-side inputs. Absent the file → designed empty state (correct, not a bug).
+- **v3 network UX (template-owned):** one row per contact per company (render-side dedup, all connectors on the row); in-map filter bar (seniority/warmth/recency/connector) drives graph + list; list toolbar = Sort only; unified detail cards (inline LinkedIn, outside-click/Esc close); red faint-warmth + visual dot key; missing title = omitted (no em-dash). Don't rebuild or regress.
+- **Former-employee filter:** engine strips off-roster connectors vs live primary.vc/people (audit in `summary.roster_filter`/`excluded_connectors`, fails open). Template `EXCLUDED_CONNECTORS = []` is a manual per-build override knob — leave empty.
 
 **Landing/cover page = Phase 8b (OPTIONAL, off by default since v3.1).** The walkthrough is the entry page; build a landing only on explicit ask.
 
