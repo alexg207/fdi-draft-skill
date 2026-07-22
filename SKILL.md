@@ -1842,8 +1842,11 @@ If you feel the urge to edit the walkthrough HTML for this founder, stop: the th
 
 ```bash
 node --check build-data.js
+test -s build-data.js && grep -q "BUILD_DATA" build-data.js || echo "✗ BUILD ERROR: build-data.js missing/empty — the walkthrough would have no data (engine A2 backstop will regenerate numbers, but authored copy is lost)"
 grep -ci "<previous-founder-name>" build-data.js   # must be 0 (also grep "lantern" on non-Lantern builds)
 ```
+
+**Always-emit contract (A2).** `build-data.js` MUST exist and expose `window.BUILD_DATA` before commit — a walkthrough with no data is a build failure, not a soft miss. The engine now runs a deterministic **backstop** (`scripts/fdi/backfill-build-data.mjs`) after the network fetch: if this step didn't leave a valid `build-data.js`, the engine regenerates one with every headline number DERIVED from the build's own artifacts (config/webset/network/data.js). The backstop guarantees correct NUMBERS and a never-blank walkthrough, but it cannot author the founder voice — so Step 2 is still mandatory; the backstop is a safety net, not a substitute.
 
 Then open `index.html?act=N` for N=0..9 and confirm every scene renders with this build's data; check `axes[].weight` sums to 100 and `companies[0]` is the intended hero account (act 6 blends it). Commit: `git commit -m "Phase 8c: scroll walkthrough entry (index.html + build-data.js)"`.
 
