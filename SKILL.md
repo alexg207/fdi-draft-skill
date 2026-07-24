@@ -63,8 +63,10 @@ The skill operates inside a per-founder Git repo at `~/fdi/<founder-slug>/`. Lay
 ├── dashboard.html                       # The dashboard app (Phase 8; dark default + light toggle + All tab + score color-coding + NETWORK_DATA-driven Network & Contacts tabs)
 ├── middleware.js, vercel.json           # From template — edge Basic-Auth deploy gate + static config; keep as-is (engine sets FDI_DASHBOARD_PASSWORD)
 ├── build-data.js                        # Phase 8c — the cinematic's only founder-specific input (schema: template/build-data-template.js)
+├── competitors.html / competitors-data.js # Phase 8d (OPTIONAL, only when config.json.modules includes "competitors") — standalone competitor teardown page + its window.COMPETITORS_DATA; absent on every default build
 ├── assets/                              # Phase 8c — FULL copy of template/assets (logos/ + primary-lockup.svg — used by the WALKTHROUGH; the dashboard topbar uses an inline mark)
 ├── assets/dashboard-preview.png         # Phase 8c — screenshot of THIS build's dashboard for the cinematic hero
+├── build-summary.json                   # Phase 10 — modules map (ok|skipped|failed) the hub reads for per-module checkmarks
 ├── BUILD_NOTES.md                       # Generated Phase 9
 └── .git/                                # Initialized Phase 0; commit per phase
 ```
@@ -132,9 +134,10 @@ the engine all read it). Each module declares a `key`, `tier`, `default`, the
   the product; a selection that omits them is ignored, they still generate.)
 
 Only modules with a `skill:` generator are yours to gate here. Today that's:
-`landing` (`skill:8b`, optional, `default:false`) — already opt-in. Modules with
-an `engine:` generator (e.g. `network` → `fetch-affinity-network.mjs`) are gated
-by the engine AFTER your build, not by you; never generate their artifacts.
+`landing` (`skill:8b`, optional, `default:false`) and `competitors` (`skill:8d`,
+optional, `default:false`) — both opt-in. Modules with an `engine:` generator
+(e.g. `network` → `fetch-affinity-network.mjs`) are gated by the engine AFTER
+your build, not by you; never generate their artifacts.
 
 **Degrade, don't fail.** If an `optional` module is not selected, SKIP its phase
 cleanly — the dashboard already renders the designed empty state for an absent
@@ -144,10 +147,12 @@ was skipped. Only `core` modules hard-fail.
 
 **Record what shipped.** At the end of Phase 10, after the self-check, write
 `build-summary.json` at the repo root with a `modules` map of every registry
-module you were responsible for → `"ok"` (generated) or `"skipped"` (optional,
-not selected). The engine merges its own modules (e.g. `network`) into the same
-map post-build; the hub renders per-module checkmarks from it. Example:
-`{"modules": {"walkthrough": "ok", "dashboard": "ok", "landing": "skipped"}}`.
+module you were responsible for → `"ok"` (generated), `"skipped"` (optional, not
+selected), or `"failed"` (selected but its generation could not complete — the
+module shipped its designed empty state instead of blocking the build). The
+engine merges its own modules (e.g. `network`) into the same map post-build; the
+hub renders per-module checkmarks from it. Example:
+`{"modules": {"walkthrough": "ok", "dashboard": "ok", "landing": "skipped", "competitors": "ok"}}`.
 (Leave a module out of the map entirely if it isn't yours — don't claim
 `network`, the engine owns that one.)
 
@@ -1906,6 +1911,82 @@ grep -ci "<previous-founder-name>" build-data.js   # must be 0 (also grep "lante
 
 Then open `index.html?act=N` for N=0..9 and confirm every scene renders with this build's data; check `axes[].weight` sums to 100 and `companies[0]` is the intended hero account (act 6 blends it). Commit: `git commit -m "Phase 8c: scroll walkthrough entry (index.html + build-data.js)"`.
 
+### Phase 8d (OPTIONAL, default OFF): Competitor teardown — the `competitors` module
+
+Runs ONLY when `config.json.modules` is a non-empty array that includes
+`"competitors"`. If the `modules` field is absent/empty, or is a selection that
+omits `"competitors"`, SKIP this phase entirely (ship neither `competitors.html`
+nor `competitors-data.js`; record `competitors: "skipped"` in Phase 10's
+build-summary) — `competitors` is `default:false`, so unset = off. See
+"Modules (registry-driven)".
+
+When selected, produce a STANDALONE page (its own tab in the GTM section, NOT a
+tab inside the dashboard): `competitors.html` (copied from the template, stamped)
++ `competitors-data.js` (`window.COMPETITORS_DATA`, generated). This ships next to
+the renamed `dashboard.html` from Phase 8c and links back to it.
+
+**Step 1 — research (basic-Exa pool; budget ~$1-2 for 5-8 competitors).** Seed
+the candidate list from CONTEXT.md's **Competitive Landscape** table (Phase 4 —
+category / players / why-they-fail, in the founder's own framing), then verify +
+enrich each with FRESH external research via `web_search_exa` / `web_fetch_exa`:
+positioning, funding stage, pricing model, notable customers, genuine strengths,
+and the structural weakness the founder exploits. Pick the 5-8 that actually
+compete for this founder's buyer (drop tangential ones). Every non-obvious claim
+must trace to a real source URL you fetched — never assert funding/customers/
+pricing from memory.
+
+**Step 2 — generate `competitors-data.js`** per `template/competitors-data-template.js`
+(the schema doc). Shape (`window.COMPETITORS_DATA`, schema_version 1):
+`build_status:"ok"`; `founder:{name, positioning}`; `market_map:{axis_x:{label,low,high},
+axis_y:{label,low,high}, placements:[{name,x,y,is_founder}]}` — the two axes are
+the dimensions that separate this market (e.g. "Point tool ↔ Platform",
+"SMB ↔ Enterprise"), `x`/`y` in 0-100, EXACTLY ONE placement `is_founder:true`
+(the founder) and one placement per competitor; `competitors:[{name, domain,
+category, one_liner, positioning, strengths[], weaknesses[], why_founder_wins,
+funding_stage, pricing_model, notable_customers[], sources:[{title,url}]}]`
+(≥2 https sources each); `summary`. Hyphens only, NEVER em dashes. Apostrophes
+inside JS strings are curly (`’`) — the straight-quote silent-render gotcha
+applies here too.
+
+**Step 3 — stamp the page + the nav link.**
+```bash
+cp template/competitors.html ./competitors.html
+# stamp the 3 placeholders exactly as Phase 8 does for the dashboard
+#   {{PRODUCT_NAME}} {{THEME_ACCENT_DARK}} {{THEME_ACCENT_LIGHT}}  (from config.theme_color's preset in template/theme-presets.json; ember → the template default)
+# reveal the dashboard's nav link (Phase 8c already renamed the dashboard to dashboard.html):
+perl -0pi -e 's/<!--\s*COMPETITORS_NAV\s*-->/<a class="page-tab" href="competitors.html">Competitors<\/a>/' dashboard.html
+grep -q 'href="competitors.html"' dashboard.html || echo "✗ BUILD ERROR: COMPETITORS_NAV anchor not stamped in dashboard.html"
+```
+(When this phase does NOT run, the inert `<!-- COMPETITORS_NAV -->` comment simply
+stays in dashboard.html — invisible, no link, zero effect. Never leave the comment
+AND ship competitors.html; never ship the link without competitors.html.)
+
+**Step 4 — self-check (fail the ENTRY, repair, before committing):**
+- `node --check competitors-data.js`; no `{{...}}` placeholders survive in
+  competitors.html (grep); no em dashes in authored copy.
+- 5-8 competitors; each has ≥2 `https://` sources; `why_founder_wins` reads as
+  POSITIONING (why the founder is different/better for the buyer), never
+  disparagement — this page can ship world-readable under the founder's brand on a
+  public build (middleware is stripped), so every competitor claim must be sourced
+  and fair.
+- `market_map`: exactly one `is_founder:true`; every `placements[].name` equals
+  `founder.name` or one of `competitors[].name`; all `x`/`y` in 0-100.
+- Open `competitors.html` locally: cards render for every competitor, the market
+  map plots every placement with the founder highlighted, sources are clickable,
+  the back-link reaches `dashboard.html`, zero console errors. Then flip the theme
+  toggle and confirm it persists (same localStorage key as the dashboard).
+
+**Degrade (never fail the build):** if the research genuinely can't complete
+(e.g. basic-Exa 402, or too few credible competitors surface), still ship BOTH
+files — write `competitors-data.js` with `build_status:"unavailable"` and empty
+`competitors:[]` / `placements:[]` (the page renders its designed empty state,
+exactly like the dashboard's Network tab without `network-data.js`), stamp the
+nav link anyway, record `competitors: "failed"` in the build-summary, and note it
+in BUILD_NOTES. A skipped-because-unselected module is different (ship neither
+file, `"skipped"`).
+
+Commit: `git commit -m "Phase 8d: competitor teardown (competitors.html + competitors-data.js)"`.
+
 ### Phase 9: Write BUILD_NOTES.md
 
 Following `template/BUILD_NOTES_TEMPLATE.md`, write `./BUILD_NOTES.md` at the repo root. Document:
@@ -1973,7 +2054,42 @@ done
 
 # 5. Git history is clean (per-phase commits visible)
 git log --oneline | head -15
+
+# 6. Optional modules: files must exist IFF selected in config.json.modules.
+#    competitors (skill:8d) is the only skill-generated optional page today.
+#    An empty/absent modules field means "all defaults" → competitors OFF.
+MODS=$(node -e "try{const m=JSON.parse(require('fs').readFileSync('config.json','utf8')).modules;process.stdout.write(Array.isArray(m)?m.join(','):'')}catch(e){}")
+if printf '%s' ",$MODS," | grep -q ",competitors,"; then
+  for f in competitors.html competitors-data.js; do test -s "$f" && echo "✓ $f (competitors selected)" || echo "✗ MISSING: $f — competitors selected but not generated"; done
+  node --check competitors-data.js && echo "✓ competitors-data.js parses" || echo "✗ competitors-data.js PARSE ERROR"
+  grep -q 'href="competitors.html"' dashboard.html && echo "✓ dashboard nav links to competitors" || echo "✗ COMPETITORS_NAV not stamped in dashboard.html"
+else
+  test ! -e competitors.html && test ! -e competitors-data.js && echo "✓ competitors not selected — no competitors files (correct)" || echo "✗ competitors NOT selected but competitors files exist — delete them (a stray page would deploy unverified)"
+fi
 ```
+
+**Write `build-summary.json`** (the LAST artifact — see "Modules (registry-driven)"). Map every registry module THIS SKILL owns to its outcome; leave engine-owned `network` out (the engine merges it post-build). Core modules (`walkthrough`, `dashboard`) are always `"ok"`; each optional skill module is `"ok"` (generated cleanly), `"skipped"` (optional, not selected), or `"failed"` (selected but shipped its degraded empty state). The status is DERIVED, not hand-set: a degraded competitors build ships `competitors.html` too, so file-existence alone can't tell `ok` from `failed` — read `COMPETITORS_DATA.build_status` (`"ok"` → ok, anything else → failed).
+```bash
+node -e '
+  const fs=require("fs");
+  let mods=[]; try{ const m=JSON.parse(fs.readFileSync("config.json","utf8")).modules; if(Array.isArray(m)) mods=m; }catch{}
+  const sel = k => mods.length>0 && mods.includes(k);   // empty/absent selection = defaults; both optionals default:false = off
+  const has = f => fs.existsSync(f);
+  const landing = !sel("landing") ? "skipped" : (has("landing.html") ? "ok" : "failed");
+  let competitors = "skipped";
+  if (sel("competitors")) {
+    competitors = "failed";
+    if (has("competitors.html") && has("competitors-data.js")) {
+      const m = fs.readFileSync("competitors-data.js","utf8").match(/build_status\s*:\s*[\"\x27]([a-z_]+)[\"\x27]/);
+      competitors = (m && m[1] === "ok") ? "ok" : "failed";
+    }
+  }
+  const summary = { modules: { walkthrough:"ok", dashboard:"ok", landing, competitors } };
+  fs.writeFileSync("build-summary.json", JSON.stringify(summary,null,2)+"\n");
+  console.log("✓ build-summary.json:", JSON.stringify(summary.modules));
+'
+```
+Commit: `git commit -m "Phase 10: self-check + build-summary"`.
 
 Then walk this manual checklist:
 
