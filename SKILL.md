@@ -113,6 +113,49 @@ This is an 11-phase build (Phase 0–10), plus the standard landing (Phase 8b) a
 
 ---
 
+## Modules (registry-driven)
+
+A build is composed of **modules** — one per feature. The catalog is
+`template/modules-registry.json` (single source; the hub menu, this skill, and
+the engine all read it). Each module declares a `key`, `tier`, `default`, the
+`artifacts` it produces, and its `generator` (`skill:<phase>` or
+`engine:<script>`).
+
+**Which modules to generate — read `config.json.modules`:**
+
+- **`config.json` has NO `modules` field (or it's absent/empty) → generate every
+  `default:true` module.** This is the DEFAULT and it is EXACTLY today's behavior.
+  Backward-compat is sacred: an unset selection must never change what ships.
+- **`config.json.modules` is a non-empty array of module keys → generate the
+  `core` modules ALWAYS, plus only the `optional` modules whose key is in the
+  array.** (`core` is never gated off — walkthrough + dashboard + their data ARE
+  the product; a selection that omits them is ignored, they still generate.)
+
+Only modules with a `skill:` generator are yours to gate here. Today that's:
+`landing` (`skill:8b`, optional, `default:false`) — already opt-in. Modules with
+an `engine:` generator (e.g. `network` → `fetch-affinity-network.mjs`) are gated
+by the engine AFTER your build, not by you; never generate their artifacts.
+
+**Degrade, don't fail.** If an `optional` module is not selected, SKIP its phase
+cleanly — the dashboard already renders the designed empty state for an absent
+optional artifact (this is exactly how the Network/Contacts tabs behave when
+`network-data.js` is absent). Never hard-fail a build because an optional module
+was skipped. Only `core` modules hard-fail.
+
+**Record what shipped.** At the end of Phase 10, after the self-check, write
+`build-summary.json` at the repo root with a `modules` map of every registry
+module you were responsible for → `"ok"` (generated) or `"skipped"` (optional,
+not selected). The engine merges its own modules (e.g. `network`) into the same
+map post-build; the hub renders per-module checkmarks from it. Example:
+`{"modules": {"walkthrough": "ok", "dashboard": "ok", "landing": "skipped"}}`.
+(Leave a module out of the map entirely if it isn't yours — don't claim
+`network`, the engine owns that one.)
+
+Adding a NEW feature later = a `template/` folder or a new skill phase + one line
+in `modules-registry.json`. Nothing else in this skill changes.
+
+---
+
 ## Output style rules (apply to every generated output)
 
 These rules apply to every piece of text you write into CONTEXT.md, data.js fields (subtitle, overview, gtm_thesis, sections, signal reasonings), BUILD_NOTES.md, and any other output. They do not apply to the user-facing chat messages you post during the build (those can stay conversational), but they do apply to anything that ships in the dashboard.
@@ -422,6 +465,15 @@ git clone https://github.com/alexg207/fdi-template.git template/
 # not "Frost"). It flows verbatim into {{PRODUCT_NAME}}, the walkthrough, and
 # Slack/hub reporting. If the dispatch input is a short form, expand it from the
 # docs in inputs/ before writing it here (F16).
+#
+# modules = which modules to build (see "Modules (registry-driven)"). FDI_MODULES
+# is an optional csv of module keys from the hub menu / engine dispatch. Empty or
+# unset → `[]` → every default:true module generates = today's exact behavior.
+if [ -n "${FDI_MODULES:-}" ]; then
+  MODULES_JSON=$(printf '%s' "$FDI_MODULES" | jq -R -c 'split(",") | map(gsub("^\\s+|\\s+$";"")) | map(select(length>0))')
+else
+  MODULES_JSON="[]"
+fi
 cat > config.json <<EOF
 {
   "founder_name": "<Full Brand Name>",
@@ -429,6 +481,7 @@ cat > config.json <<EOF
   "description": "$DESCRIPTION",
   "geo_scope": "$GEO_SCOPE",
   "theme_color": "${THEME_COLOR:-ember}",
+  "modules": $MODULES_JSON,
   "build_started": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 }
 EOF
@@ -461,6 +514,11 @@ cd ~/fdi/$SLUG
 git clone https://github.com/alexg207/fdi-template.git template/
 
 # Save build config (geo scope, founder name) — Phase 6c will read this
+if [ -n "${FDI_MODULES:-}" ]; then
+  MODULES_JSON=$(printf '%s' "$FDI_MODULES" | jq -R -c 'split(",") | map(gsub("^\\s+|\\s+$";"")) | map(select(length>0))')
+else
+  MODULES_JSON="[]"
+fi
 cat > config.json <<EOF
 {
   "founder_name": "<Company Name>",
@@ -468,6 +526,7 @@ cat > config.json <<EOF
   "description": "$DESCRIPTION",
   "geo_scope": "$GEO_SCOPE",
   "theme_color": "${THEME_COLOR:-ember}",
+  "modules": $MODULES_JSON,
   "build_started": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 }
 EOF
