@@ -1363,9 +1363,78 @@ The hard floor is **≥1 verified job per company in tier='high'**. If a tier='h
 
 **Why Sumble first:** generic job board enrichment via Webset returns inaccurate role descriptions and stale postings (validated in May 5 test build). Sumble tracks company-specific hiring with structured role/team/location data. Higher signal, lower noise. The fallbacks fire only when Sumble has no record.
 
-**6k — Contact discovery via Lovelace**
+**6k step 1 — Golden dataset cache check (skip only what we already know)**
+
+Primary keeps a **golden dataset**: every contact any past FDI build discovered, in one canonical
+cache. Overlapping account lists are common across builds, and re-discovering the same person is
+money spent twice. Check the cache before paying for contact discovery.
+
+This is a STEP INSIDE Phase 6k, not a phase of its own: commit its work under
+`Phase 6k: …` like the rest of 6k. Never write a `Phase 6k-pre:` commit — the Hub's journey UI
+parses phase ids from an exact allowlist and an unknown id freezes the founder's progress page.
+
+Run this step ONLY when all three env vars are set (`GOLDEN_URL`, `GOLDEN_ANON_KEY`,
+`GOLDEN_LOOKUP_TOKEN`). If any is missing, skip straight to 6k unchanged — the cache is an
+optimization, never a dependency.
+
+`GOLDEN_URL` must be an `https://` URL — refuse to call it otherwise, or the anon key and
+lookup token travel in plaintext:
+
+```bash
+case "$GOLDEN_URL" in https://*) ;; *) echo "GOLDEN_URL is not https — skipping cache check"; esac
+```
+
+```bash
+# domains from the curated company list (Phase 6i), max 60 per call
+curl -sS --max-time 15 --proto '=https' "$GOLDEN_URL/functions/v1/golden-lookup" \
+  -H "apikey: $GOLDEN_ANON_KEY" -H "Authorization: Bearer $GOLDEN_ANON_KEY" \
+  -H "x-lookup-token: $GOLDEN_LOOKUP_TOKEN" -H 'Content-Type: application/json' \
+  -d '{"domains":["example.com","other.com"]}' > /tmp/golden-cache.json
+```
+
+Write the response to `/tmp`, **never into the build repo** — the build commits with `git add -A`,
+and a `golden-cache.json` in the working dir would ship cached contact data into the founder's
+own repository. It is scratch input for this step only; nothing about it belongs in the build.
+
+A company is a **cache hit** only when ALL of these hold — otherwise treat it as a miss:
+
+1. **≥3 distinct contacts** returned for that domain, each with a `linkedin_url` AND a `title`
+   (identity plus role; a bare name is not usable for outreach)
+2. every counted contact's `last_observed_at` is **within 180 days** (older is stale — people
+   move, and a wrong title is worse than no title)
+3. **≥1 buyer-grade contact** among them: `persona` of `buyer`/`business`, or a title that is
+   C-level / President / VP of the owning function. Three junior names do not make a hit — they
+   would suppress buyer discovery, which is the expensive half.
+
+For each hit: reuse those contacts, tag each `"source": "golden-cache"`, and **skip that
+company's Lovelace/contact queries entirely**. Log one line per skipped company so the saving is
+visible in the build log.
+
+For each miss (or partial): run 6k step 2 for that company **exactly as written below** — no changes.
+
+Merge rules when combining cached and freshly-discovered contacts:
+
+- Deduplicate by LinkedIn slug first, then by normalized name + company.
+- Freshly discovered data **always wins** on conflict; a cached row must never overwrite a field
+  this build just researched.
+- Cached contacts still pass every 6k step 2 persona rule below, including the antagonist exclusions
+  from CONTEXT.md. The cache does not know this founder's antagonists — you do.
+
+If the lookup call fails, times out, or returns malformed JSON: log it and treat **every** company
+as a miss. Never fail the build over the cache.
+
+Company *discovery* (the Webset) is untouched by this step — only contact-level spend is skipped.
+
+**6k step 2 — Contact discovery via Lovelace**
 
 Run `Lovelace:search_linkedin_profiles` per target company (max 10 results per call). Two queries per company is usually right: one for the primary buyer persona, one for the technical champion persona.
+
+**A contact's `name` must be a person's name.** When a source withholds the real name and returns
+the role instead ("Senior ML Platform Engineering Lead, AI Group", "Software Engineer, ML
+Infrastructure (team lead)"), **drop the contact** — never write a role into the name field. Such
+rows are unmatchable downstream and the engine's cache step rejects them anyway. Prefer three real
+named contacts over five where two are anonymous roles. (Frost shipped two of these; both had
+`linkedin: null`, which is the tell.)
 
 The persona phrasing must come from the founder's vertical and from CONTEXT.md's antagonist warnings, generic "engineering leader" returns garbage.
 
@@ -1581,7 +1650,7 @@ cp template/data.js data.js
 
 8. **Write `tags` 3-5 chips with mixed colors** (`Valar`/`brand` for relationship, `stack` for technical/constraint, `hw` for hard constraint, `hiring` for hiring signal, `neutral` for factual). Tooltips required if the tag is non-obvious. Hiring tags prefixed with the role being hired (e.g., `'Hiring: ML Platform'` for inference founders, `'Hiring: RCM'` for healthcare workflow, `'Hiring: Payments'` for fintech). **Banned tag values** (do not use): `Stage-1 ICP`, `Stage-2 ICP`, `Stage 1`, `Stage 2`, `Pipeline`, `Mid-Market`, `Enterprise`, `Target`, `ICP`, `In ICP`, or any other segment-classification meta-tag. Tags must reference product names, technical stack, constraints, relationship status, or hiring signals — never segment classification (the segment is already shown by the tab). See Section 9.4.
 
-9. **Populate `CONTACT_MAP`** with platform/infrastructure leadership keyed exactly to `SEGMENTS[].companies[].name` (character-for-character match including parentheses). Read from `lovelace-contacts.json`. Persona discipline reflects founder antagonist warnings, exclude personas the founder has flagged. **Keep `CONTACT_MAP[].connections` EMPTY** — the UI no longer synthesizes warm intros from `PRIMARY_TEAM`, and the Network/Contacts tabs render only real Affinity paths (engine-written `network-data.js`). Never invent connection edges. See Section 9.10.
+9. **Populate `CONTACT_MAP`** with platform/infrastructure leadership keyed exactly to `SEGMENTS[].companies[].name` (character-for-character match including parentheses). Read from `lovelace-contacts.json`. Persona discipline reflects founder antagonist warnings, exclude personas the founder has flagged. Every `name` must be a person's name — drop any entry whose name field holds a job title (see 6k). **Keep `CONTACT_MAP[].connections` EMPTY** — the UI no longer synthesizes warm intros from `PRIMARY_TEAM`, and the Network/Contacts tabs render only real Affinity paths (engine-written `network-data.js`). Never invent connection edges. See Section 9.10.
 
    **9a. `domain` is a join key, not just a favicon.** Every `SEGMENTS[].companies[].domain` must be the company's canonical registrable domain (no `www`, no path, no product/marketing subdomain — e.g. `acme.com`, not `www.acme.com/product` or `app.acme.com`). The engine's Affinity network step (`fetch-affinity-network.mjs`) resolves each company by normalized domain; a wrong/missing domain silently drops that account from BOTH the Network and Contacts tabs. Also keep `SEGMENTS[].companies[].name` stable — the tabs join it EXACTLY (character-for-character) to attach display metadata (subtitle/category/favicon).
 
