@@ -4,13 +4,13 @@ Distillation of the most-used disciplines from `SKILL.md`. For full prose see `S
 
 ---
 
-## The 14 Output Style Rules
+## The 25 Output Style Rules
 
-Rules apply to every shipped artifact (CONTEXT.md, data.js, index.html, BUILD_NOTES.md). They don't apply to user-facing chat during the build.
+Rules apply to every shipped artifact (CONTEXT.md, data.js, index.html, build-data.js, BUILD_NOTES.md). They don't apply to user-facing chat during the build.
 
 | # | Rule | Quick test |
 |---|---|---|
-| 1 | Avoid em dashes | ≤3 per company entry (hard cap) |
+| 1 | No em dashes in rendered copy | zero, not a budget (source titles exempt) |
 | 2 | Default geo: US + Canada only | unless user expanded scope in Phase 0 |
 | 3 | No filler descriptors | no "industry-defining", "best-in-class", "innovative" |
 | 4 | Numeric ranges, not point estimates | "$2M–$5M" not "$3.5M" if estimated |
@@ -25,7 +25,19 @@ Rules apply to every shipped artifact (CONTEXT.md, data.js, index.html, BUILD_NO
 | 13 | gtm_thesis personnel-durable | no named individuals; survive personnel changes |
 | 14 | Reference build is scaffolding, not content | don't anchor on Valar — derive from this build's CONTEXT.md |
 
-SKILL.md carries 4 more rules beyond these (15 word caps · 16 no `(a)(b)(c)` enumeration · 17 `opp_reason` evidence hurdle · 18 warmth-copy tone) — see SKILL.md for the authoritative set.
+| 15 | Word caps per field | subtitle 18w · overview 80w · gtm_thesis 75w · opp_reason 50w |
+| 16 | No `(a)(b)(c)` enumeration | `residency_reason` only |
+| 17 | `opp_reason` names a hurdle when `signal_score` ≤ 4 | honest weakness signals credibility |
+| 18 | Warmth copy: confident partnership | never "we gave it our best shot" |
+| 19 | No investor-internal framing | no "IC", "memo", "dealflow" in shipped strings |
+| 20 | **A sample, never a census** | no "readiest buyers", "the N to target", market-wide superlatives |
+| 21 | Greet a prospect, not a portfolio co | "Hello" not "Welcome"; "excited **by** the prospect"; progress not launch |
+| 22 | Write RAW scores only | never hand-write `composite` or a 70-100 display value |
+| 23 | Never recreate primary.vc content | link out to /approach in a new tab |
+| 24 | Tool + source names must exist in artifacts | a carried-over tool list is a fabricated citation |
+| 25 | ≤3 rendered lines, no orphan words | measure with the template's `npm run smoke` |
+
+Rules 20-25 came out of the Forgepoint founder review (Jason, 2026-08-17). SKILL.md is the authoritative set; this table is the recall aid.
 
 ---
 
