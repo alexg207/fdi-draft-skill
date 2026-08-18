@@ -265,7 +265,9 @@ These rules apply to every piece of text you write into CONTEXT.md, data.js fiel
 
 ## Interaction model
 
-The skill is designed to run mostly in the background. Don't interrupt the user for decisions you can make from documented best practice. When you DO need input, ask one question at a time, never batches.
+The skill is designed to run mostly unattended. Don't interrupt the user for decisions you can make from documented best practice. When you DO need input, ask one question at a time, never batches.
+
+**"Unattended" means don't ASK — it does not mean detach.** A build runs as a one-shot CI job with no interactive session behind it, so your run ends the moment you finish a message without calling a tool. Never background work, schedule a wake-up, set a timer, or end a turn to let time pass; wait with a foreground `Bash("sleep N")` loop instead. A build died exactly this way while its paid Webset kept running.
 
 **One question at a time.** When the user is genuinely needed for input, post one question and wait. Never bundle two or three questions into the same turn. The terminal flow is better with sequential turns, the user can answer faster, and partial answers don't leave the build half-confused. This applies in Phase 0 (already enforced) and especially in Phase 2 (gap questions), where the prior pattern of grouping by theme caused user fatigue.
 
@@ -1188,7 +1190,15 @@ Monitor progress at: dashboard.exa.ai/websets/webset_abc123
 I'll continue when it's idle.
 ```
 
-Poll `get_webset` every 30 seconds (or use `ScheduleWakeup` with delaySeconds=270 to stay in cache window) until status is `idle`. The first poll should wait at least 10 seconds after `create_webset` per Exa's recommendation.
+Poll `get_webset` until status is `idle`, waiting in the FOREGROUND between polls:
+
+```
+Bash("sleep 60")  →  mcp__websets__get_webset  →  repeat, up to ~25 minutes
+```
+
+The first poll should wait at least 10 seconds after `create_webset` per Exa's recommendation.
+
+**NEVER wait by ending your turn.** No `ScheduleWakeup`, no background timer, no "I'll check back" message, no scheduled task. A build runs as a ONE-SHOT CI job: the moment you finish a message without calling a tool, the run is over. A previous build died exactly this way — it backgrounded the wait as though an interactive session would resume it, the job ended with no data written, and the paid Webset kept running with nobody reading it. A foreground `sleep` loop is the only way to pass time.
 
 **Early-cancel triggers — don't wait it out.** Webset has good criterion-pass-rate telemetry; use it. The skill's failure mode is letting a slow search drain a too-restrictive criterion until the user is 30+ minutes deep with thin returns. Cancel and re-fire with softened criteria when:
 
@@ -1584,7 +1594,11 @@ A real test on May 4 with 5 companies × 3 enrichments returned in ~5 minutes fo
 
 ### Phase 7: Populate data.js
 
-**Delegate this phase to a Task subagent.** Phase 7 is the heaviest phase by far (10 companies × ~150 lines of data.js per entry × the 15 self-check items). The 1.5MB `webset-response.json` plus `founder-pick-research.json` plus `lovelace-contacts.json` plus `sumble-jobs.json` plus CONTEXT.md plus the template files don't all fit in the main thread's context efficiently. Spawn a `general-purpose` Task subagent and pass it:
+**Delegate this phase to a Task subagent.** (If `Task` is not available in this
+environment, do the work in-thread against the same instructions — the delegation
+is a context-budget optimisation, not a correctness requirement. Both CI stages
+grant `Task`; a build that silently ran these phases in-thread for months is why
+this note exists.) Phase 7 is the heaviest phase by far (10 companies × ~150 lines of data.js per entry × the 15 self-check items). The 1.5MB `webset-response.json` plus `founder-pick-research.json` plus `lovelace-contacts.json` plus `sumble-jobs.json` plus CONTEXT.md plus the template files don't all fit in the main thread's context efficiently. Spawn a `general-purpose` Task subagent and pass it:
 
 - Working directory path (`~/fdi/<slug>/`)
 - The 5 Phase 5 artifacts (`SECTION_2_LABEL`, `HIRING_KEYWORD_REGEX`, `WOW_EVIDENCE_SHAPE`, the 4 axis definitions, the segment structure)
