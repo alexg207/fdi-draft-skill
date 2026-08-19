@@ -512,13 +512,14 @@ cat > config.json <<EOF
 }
 EOF
 
-# Initialize git
-git init
+# Initialize git. `-b main` is load-bearing: CI runners default to `master`,
+# and the engine, the Hub and the in-site editor all read `main`.
+git init -b main
 git add inputs/ template/ config.json
 git commit -m "Phase 0: working directory setup, template cloned, build config saved"
 
 # Create the GitHub remote and push
-gh repo create alexg207/$SLUG-fdi --public \
+gh repo create alexg207/$SLUG-fdi --private \
   --description "$DESCRIPTION" \
   --source=. \
   --remote=origin \
@@ -557,7 +558,7 @@ cat > config.json <<EOF
 }
 EOF
 
-git init
+git init -b main
 git add inputs/ template/ config.json
 git commit -m "Phase 0: working directory setup, template cloned, build config saved"
 ```
@@ -572,7 +573,7 @@ To create the GitHub repo manually, install gh (`brew install gh`), authenticate
 (`gh auth login`), and run:
 
   cd ~/fdi/<slug>
-  gh repo create alexg207/<slug>-fdi --public --description "<desc>" --source=. --remote=origin --push
+  gh repo create alexg207/<slug>-fdi --private --description "<desc>" --source=. --remote=origin --push
 
 Or do it in the GitHub web UI: github.com/new, name it "<slug>-fdi", then 
 `git remote add origin git@github.com:alexg207/<slug>-fdi.git && git push -u origin main`.
