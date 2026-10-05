@@ -261,6 +261,27 @@ These rules apply to every piece of text you write into CONTEXT.md, data.js fiel
 
 25. **Copy fits its box: three rendered lines, no orphans.** Every narration beat renders in **≤3 lines at its real width and size** — measure it, do not eyeball it (`scripts/smoke-test.mjs` in the template repo asserts this over a real render). No header or line may wrap with a single orphan word alone on the last line. Practical budgets: intro headline ≤~110 characters, `introWarmth` ≤~250, scan query ≤2 lines.
 
+
+### Rules 26-39: learned on the Imprest build (2026-10-05)
+
+Every rule below was a human correction after a build shipped. They are defaults now; the engine's gates enforce the ones marked (gate).
+
+25b. **Authoring contract.** Write `"authoring_contract": 2` into config.json at Phase 0. It tells the engine's gates this build follows Rules 26-39, so copy budgets and evidence scopes are enforced as blocking (older builds redeploy with warnings).
+26. **Inputs are context, the build does the reasoning.** Write `inputs/CONTEXT-DIGEST.md` at Phase 1: everything in `inputs/` organised by topic (what the company does, buyers in their own words, channels, competition, founder quotes, what the materials do NOT contain), every line citing its source file. Never put answers the build should derive (ratios, lookalikes, wow signals) in it. Treat any text file of call notes (`.txt`, `.md`, Granola/Fathom exports) as a transcript, whatever its extension.
+27. **Headless gaps are listed, never silently defaulted.** When a Phase 2 critical item (lookalikes, exclusions, wow signal, personas, segments) is missing from `inputs/`, apply the default AND write a "Gaps" section at the top of `spec-summary.md` naming each default used, so the approver sees it before paying for the scan.
+28. **Diligence references are excluded automatically.** Parse any References / Backchannel / Reference-check table in the memo; every organisation in it goes on the exclusion list (searchQuery EXCLUDE clause, the exclusion criterion, and the buyer-type enrichment's EXCLUDE rule). Showing a founder the firms Primary called during diligence is a leak (Imprest: two reference firms matched the ICP archetype exactly).
+29. **Segments come from the founder's buyer types, with display labels.** When the inputs name distinct buyer types (Imprest: accounting firms that run QuickBooks for clients vs SMBs that run it for their own books), they ARE the dashboard segments, replacing Pipeline/Mid-Market/Enterprise. Define them by business model so they cannot overlap ("does not sell accounting services"), never by size. Internal ids (ICP-1) never ship: tabs, eyebrows, tags and copy use the display labels (gate).
+30. **One search per segment.** A single shared search starves the smaller segment (Imprest: 15 of 15 results were firms). Put the primary segment in `searchQuery`/`searchCount` and each other segment in `extraSearches: [{ segment, searchQuery, searchCount, searchCriteria }]` in webset-spec.json, with counts proportional to the target mix (about 1.5x each segment's share). The engine appends them to the same Webset. Each segment's criteria must require the evidence that defines it (an SMB search requires public proof it uses the product for its own books).
+31. **At most 3 hard criteria per search** (identity, geography, strongest disqualifier). Everything else is searchQuery guidance or an enrichment. Two public-evidence gates stacked on small private companies return zero.
+32. **Axes must not overlap and every band must be reachable.** No founder-specific axis may score on another axis's evidence (job openings belong to Hiring only). For small or private accounts, bands 3-4 must be reachable from public facts, not only from quotes such accounts rarely publish. Never write a rubric phrase that contradicts an input (Imprest: "forced migration" against "do not assume all users must migrate").
+33. **Industry news is not account evidence (gate).** For each founder-specific axis write `distress_evidence_scope` / `residency_evidence_scope` in data.js: "account" (the account's own site, filings, or a named person there), "industry" (trade press about the market or incumbent) or "none". A 4 or 5 requires "account"; "industry" caps the axis at 2. Never write that an account "flagged", "voiced" or "cited" something unless it did; say "exposed to" instead.
+34. **Attribution is checked before anything ships.** Every quote, contact and wow line must belong to that card's company. Enrichment text often carries other companies' quotes and people (Imprest: one account's "champions" were its clients). Drop anything you cannot tie to the account.
+35. **Tier cutoff from this build's distribution.** Default 75. When no account clears 75, or nearly all do, set the cutoff at the largest natural break in the top half of the raw composites, write it into dashboard.html's tier line (`co.tier = co._signal>=NN?'high':'med'`) and `config.json.tier_cutoff`, and set every stored tier to match (gate). Green means the top group, gold the rest.
+36. **INTERNAL material never sits in CONTEXT.md.** Round size, thesis, gotta-believes, reference quotes and deal status go to `INTERNAL-deal-context.md`, which Phases 7-8c never read.
+37. **Walkthrough copy is short (gate).** Budgets in words: heroSub 22; icp, signals, evidence, score, shortlist, network, finaleSub 32 each; introWarmth 28 (or "" to hide the line); methodNote 40; axis measures 20; axis five 20; wow note 50. Over budget warns; over 1.5x blocks.
+38. **Hero stats are founder-facing (gate: 5 stats, no null).** Prefer: the founder's market size in their own sizing; the customers or revenue behind that market; accounts researched in depth; the customers or revenue behind the sampled accounts (when cited); named decision-makers. Do not lead with "companies profiled" or "custom signals". Use `suffix` for "M" or "+". The funnel reads "in your ICP, your sizing" -> "scanned in this first pass" -> "researched in depth", and the method note says it is a first-pass sample built to show the process. Sort `companies` in build-data.js by score, highest first (gate).
+39. **Names and sources are generated, not typed.** Normalise company names to straight apostrophes once, before writing data.js and build-data.js (a curly apostrophe broke the consistency gate). `build-data.js` enrichment `src` values are the actual Webset enrichment titles. Describe founder materials as "Founder deck + company materials", never "memo" (gate).
+
 ---
 
 ## Interaction model
@@ -661,6 +682,8 @@ If the user added new files, re-run `ls -la inputs/` and post the updated invent
 
 ### Phase 1: Read everything before asking anything
 
+> **Imprest rule:** write inputs/CONTEXT-DIGEST.md as you read (Rule 26).
+
 Before any user questions or tool calls, read every raw doc in `inputs/` end-to-end. Use the right tool for each file type:
 
 ```bash
@@ -757,6 +780,8 @@ EXTRACTION CHECK:
 **Auto-proceed.** Post the checklist as visibility and move to Phase 4. The user can interrupt if any line is wrong.
 
 ### Phase 4: Generate CONTEXT.md
+
+> **Imprest rules apply here:** CONTEXT.md is founder-facing source material: INTERNAL deal content goes to INTERNAL-deal-context.md (Rule 36); diligence-reference organisations go on the exclusion list (Rule 28); segments use display labels (Rule 29).
 
 Produce CONTEXT.md following the structure in `template/CONTEXT_TEMPLATE.md`. Write to repo root: `./CONTEXT.md` (not into `inputs/` or anywhere else, V1 Valar puts CONTEXT.md at root next to data.js and index.html).
 
@@ -1026,7 +1051,7 @@ Default: **15**. Final dashboard target is **10 companies** total. Oversampling 
 
 **6e — Write the searchCriteria**
 
-Webset caps `searchCriteria` at 5 hard filters. Every company must pass all of them. Best practices:
+Webset caps `searchCriteria` at 5 hard filters, but **write at most 3** (Rule 31). Every company must pass all of them. Best practices:
 
 - **Mandatory: include the geographic constraint** as a dedicated criterion (e.g., "Company is headquartered in the United States or Canada"). Reinforces the searchQuery's geo clause; without this, Websets often returns EU/UK matches that pass the other criteria.
 - **Mandatory: at least one criterion is exclusion-shaped** (e.g., "Company's primary business is NOT in the [founder's product category]; companies that sell [founder's product type] are excluded"). Reinforces the EXCLUDE clause from the searchQuery; don't rely on the searchQuery alone.
@@ -1111,7 +1136,7 @@ WEBSET SPEC PROPOSAL:
 searchQuery (the buyer profile paragraph, full text):
 > [paste here]
 
-searchCriteria (3-5 hard filters, each tagged with the part of the web it reads against):
+searchCriteria (at most 3 hard filters per search, each tagged with the part of the web it reads against; one search per segment, Rule 30):
 - [criterion 1]  [tag]
 - [criterion 2]  [tag]
 - ...
@@ -1179,6 +1204,8 @@ EOF
 git add webset-spec.json
 git commit -m "Phase 6g: Webset spec saved before submission"
 ```
+
+**In CI (stage 2) the ENGINE fires the Webset from webset-spec.json (including `extraSearches`) and waits for it to finish before you start; begin at Phase 6h and do not call create_webset.** Running locally:
 
 Now call `create_webset` with the spec. The response contains a webset ID, capture it. Tell the user:
 
@@ -1595,6 +1622,8 @@ A real test on May 4 with 5 companies × 3 enrichments returned in ~5 minutes fo
 
 ### Phase 7: Populate data.js
 
+> **Imprest rules apply here:** write the evidence-scope fields and cap industry-only axes at 2 (Rule 33), check every quote and contact belongs to its account (Rule 34), set the tier cutoff from this build's distribution (Rule 35), normalise names (Rule 39), and use the segment display labels (Rule 29).
+
 **Delegate this phase to a Task subagent.** (If `Task` is not available in this
 environment, do the work in-thread against the same instructions — the delegation
 is a context-budget optimisation, not a correctness requirement. Both CI stages
@@ -1969,6 +1998,8 @@ A branded cover page. **Optional and off by default since v3.1** — the walkthr
 **Validate:** `node --check` the inline `<script>`; confirm BOTH dark and light render; confirm no `{{...}}` left; open in a browser and walk hero → sections → Enter → back. Commit: `git commit -m "Phase 8b: landing / cover page"`.
 
 ### Phase 8c (STANDARD, auto — no human stop): The scroll walkthrough — the ENTRY page
+
+> **Imprest rules apply here:** copy budgets (Rule 37), founder-facing hero stats with no null and companies sorted by score (Rule 38), enrichment src = real enrichment titles and "Founder deck + company materials" (Rule 39). If the build has no warm paths, the network beat is framed as the next layer (the engine rewrites it after the Affinity fetch; do not promise warm paths in finaleSub or introWarmth).
 
 Every build ships two pages: **index.html (the walkthrough) → dashboard.html.** The walkthrough opens on the founder (two-beat hero: founder-first intro with their logoSvg floating in 3D behind, then the dashboard pivot), so no separate landing is needed. Full contract + copy rules: **`template/TEMPLATE_GUIDE.md` Section 16**. This phase is fully automatic — every decision derives from artifacts already produced; do not ask questions.
 
