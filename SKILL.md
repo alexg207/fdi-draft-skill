@@ -12,6 +12,10 @@ The output is a 90% solution. You do the last 10%, handpicking the 5 companies t
 
 **Production environment: Claude Code.** The Websets MCP server requires Bearer-header auth, which claude.ai's web app can't provide. Claude Code is the only working environment until Exa ships OAuth. This is a feature, not a workaround, Claude Code's filesystem access produces materially better output than claude.ai's project-knowledge model. Raw docs stay on disk, version history accumulates per build, outputs land directly in a deployable Git repo.
 
+## Shared copywriting guide
+
+Before drafting any founder-facing text, read [COPYWRITING_GUIDE.md](COPYWRITING_GUIDE.md) beside this skill. It applies across Welcome, GTM, Talent, walkthroughs, detail pages, and interface text. The user's scope and approved copy take precedence. Follow this guide for editorial judgment; retain the factual, citation, schema, and deployment requirements below. Do not imitate a dated example if it conflicts with the guide.
+
 ## When To Use
 - Starting a new FDI project (founder = company Primary is investing in or considering)
 - Iterating on an existing FDI dashboard with new data or feedback
@@ -246,8 +250,8 @@ These rules apply to every piece of text you write into CONTEXT.md, data.js fiel
 
 20. **A sample, never a census — the single most important framing rule.** (Jason Gelman, 2026-08-17, after the Forgepoint founder review.) The accounts we show are a **first-pass sample of the strongest ICP fits our process surfaced**, put in front of the founder to get their feedback and sharpen the filtering and the signals. They are not the market, not a finished target list, and not "the N companies out there." Every count on the page must read as an artifact of the process, never as the size of the opportunity.
     - **Banned outright** (rendered copy anywhere — walkthrough, dashboard, lane manifest): "most ready to buy", "the readiest buyers", "the [N] accounts to target", "we scan the entire market", "the accounts worth walking into", "the highest-quality accounts in the market", and any market-wide superlative.
-    - **Scope every ranking to the sample:** "relative readiness within this sample", never "readiest in the market".
-    - **Correct shapes to reuse:** shortlist act header = `A curated sampling, ranked by readiness.` · lane manifest summary = `An initial sampling of [N] accounts scored across four signals, every line cited` · finale = a first pass with "there's so much more we can map and build together", never a wrap-up of a finished deliverable.
+    - **Scope every ranking to the sample:** "relative signal strength within this sample", never "readiest in the market".
+    - **Describe the deliverable plainly:** for example, `Accounts to review` or `An initial sample of [N] accounts scored across [actual number] signals`. Choose wording that describes this build; these are examples, not mandatory slogans. Keep the finale open to further work without making an unsupported promise.
     - **Sample math is consistent everywhere:** [X] profiled and [Y] curated are two different numbers and must never be conflated (a "[Y] profiled" slip shipped once; sweep for it).
     - The scan beat keeps its big count, but as process output: label it `high-quality companies found through web scraping, Exa, Clay, and hands-on research`, and write the method note as `[Universe number, attributed to the founder's own sizing]. We pointed our process at [the segments] - Exa websets, web scraping, enrichment, hands-on research - and it surfaced [X] high-quality companies. This is a sample; the same process scales to the whole universe.`
 
@@ -2151,6 +2155,11 @@ git commit -m "Phase 9: BUILD_NOTES.md documenting structural decisions and Webs
 ```
 
 ### Phase 10: Self-check + deliver
+
+**Final editorial pass is required, including when zero edits are warranted.** Re-read COPYWRITING_GUIDE.md. Read the actual build's headings together in page order, then its supporting text, cards, details, labels, buttons, and empty states. Check repetition across modules, not only individual phrases. Preserve approved introductions, Welcome copy, Intelligence hub, facts, scores, names, source quotations, and qualifications. Do not force rewrites.
+
+Record the scope, meaningful before/after edits with reasons, and any unresolved issues in BUILD_NOTES.md. In the engine, its final editorial stage records a receipt after the data and branding backstops. For a local build, record the same review in BUILD_NOTES.md. Copy checks do not replace the factual or render checks below.
+
 
 Run automated checks where possible:
 
